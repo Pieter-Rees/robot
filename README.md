@@ -32,6 +32,10 @@ Power the servo power rail with a suitable power supply (not from the Pi).
 The easiest way to get started is to use the start script, which provides a menu-based interface:
 
 ```bash
+# On Raspberry Pi/Linux/macOS:
+python3 start.py
+
+# On Windows:
 python start.py
 ```
 
@@ -44,7 +48,7 @@ The start script allows you to:
 
 ### 4. Calibrate Servos
 
-Before using the robot, you should calibrate the servos:
+Before using the robot, you should calibrate the servos. You can do this directly from the start menu (option 3) or run:
 
 ```bash
 python calibration.py
@@ -57,7 +61,7 @@ This interactive tool will help you:
 
 ### 5. Control Options
 
-You have two options for controlling your robot:
+You have two options for controlling your robot, both accessible from the start.py menu:
 
 #### Option A: Command Line
 
@@ -80,7 +84,7 @@ Then open a web browser and navigate to:
 http://raspberry-pi-ip:5000
 ```
 
-Replace `raspberry-pi-ip` with the IP address of your Raspberry Pi. You can find this by running `hostname -I` on your Pi.
+Replace `raspberry-pi-ip` with the IP address of your Raspberry Pi. This address is displayed when you run start.py.
 
 The web interface provides:
 - Easy initialization and shutdown
@@ -94,7 +98,7 @@ The web interface provides:
 - Forward walking sequence
 - Safe servo movement with speed control and angle limits
 - Web interface for easy control
-- Start script for simplified usage
+- All-in-one start script for simplified usage
 
 ## Customizing
 
