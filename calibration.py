@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Servo calibration tool for humanoid robot.
+Allows interactive calibration of servo motors and saves calibration data.
+"""
 import time
 import sys
 from adafruit_servokit import ServoKit
@@ -10,7 +14,11 @@ kit = ServoKit(channels=16)
 NUM_SERVOS = 13
 
 def servo_test():
-    """Test all servos by moving each to a neutral position"""
+    """
+    Test all servos by moving each to a neutral position.
+    
+    Moves each servo to 90 degrees sequentially to verify functionality.
+    """
     print("Testing all servos by setting them to 90 degrees...")
     for i in range(NUM_SERVOS):
         print(f"Setting servo {i} to 90 degrees")
@@ -19,7 +27,15 @@ def servo_test():
     print("Test complete!")
 
 def calibrate_servo(servo_index):
-    """Interactively calibrate a specific servo"""
+    """
+    Interactively calibrate a specific servo.
+    
+    Args:
+        servo_index (int): Index of the servo to calibrate
+        
+    Returns:
+        int or None: The calibrated angle for the servo, or None if aborted
+    """
     print(f"\nCalibrating Servo #{servo_index}")
     print("----------------------------------------")
     print("Controls:")
@@ -60,7 +76,15 @@ def calibrate_servo(servo_index):
             print("Invalid command")
 
 def save_calibration(calibration_data):
-    """Save calibration data to a file"""
+    """
+    Save calibration data to a file.
+    
+    Creates a Python file with calibrated servo positions that can be imported
+    by the main robot controller.
+    
+    Args:
+        calibration_data (dict): Dictionary of servo indices and calibrated angles
+    """
     with open('servo_calibration.py', 'w') as f:
         f.write("# Servo calibration values\n\n")
         f.write("# Default positions for each servo (calibrated values)\n")
@@ -75,7 +99,12 @@ def save_calibration(calibration_data):
     print("You can import these values in your main robot controller.")
 
 def main_menu():
-    """Display the main calibration menu"""
+    """
+    Display the main calibration menu.
+    
+    Returns:
+        str: The user's menu choice
+    """
     print("\n=== Robot Servo Calibration Menu ===")
     print("1. Test all servos")
     print("2. Calibrate a specific servo")
@@ -86,7 +115,11 @@ def main_menu():
     return choice
 
 def main():
-    """Main calibration program"""
+    """
+    Main calibration program.
+    
+    Handles menu navigation and calibration workflow.
+    """
     calibration_data = {}
     
     print("===================================")
@@ -99,13 +132,16 @@ def main():
         if choice == '1':
             servo_test()
         elif choice == '2':
-            servo_index = int(input("Enter servo number (0-12): ").strip())
-            if 0 <= servo_index < NUM_SERVOS:
-                angle = calibrate_servo(servo_index)
-                if angle is not None:
-                    calibration_data[servo_index] = angle
-            else:
-                print(f"Error: Servo index must be between 0 and {NUM_SERVOS-1}")
+            try:
+                servo_index = int(input("Enter servo number (0-12): ").strip())
+                if 0 <= servo_index < NUM_SERVOS:
+                    angle = calibrate_servo(servo_index)
+                    if angle is not None:
+                        calibration_data[servo_index] = angle
+                else:
+                    print(f"Error: Servo index must be between 0 and {NUM_SERVOS-1}")
+            except ValueError:
+                print("Invalid input. Please enter a number.")
         elif choice == '3':
             print("\nCalibrating all servos sequentially...")
             for i in range(NUM_SERVOS):

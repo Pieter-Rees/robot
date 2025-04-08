@@ -1,20 +1,24 @@
-# Git
+# Version control
 .git
 .gitignore
+.github/
 
-# Editor files
-.vscode
-.idea
+# Editor directories and files
+.vscode/
+.idea/
 *.swp
 *.swo
+*~
 
-# Python
+# Python cache and virtual environments
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
 env/
+venv/
+ENV/
 build/
 develop-eggs/
 dist/
@@ -30,10 +34,16 @@ var/
 .installed.cfg
 *.egg
 
-# Docker
-Dockerfile
+# Docker-related files 
+# (We DO need the Dockerfile for building)
+# Dockerfile
 docker-compose.yml
 .dockerignore
 
-# Misc
-README.md 
+# Documentation
+README.md
+docs/
+*.md
+
+# Logs
+*.log 
