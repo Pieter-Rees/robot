@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  robot-controller:
+    build: .
+    container_name: robot-controller
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    # Use privileged mode to access GPIO pins and hardware
+    privileged: true
+    # Mount the host's /dev directory to access hardware
+    devices:
+      - "/dev/gpiomem:/dev/gpiomem"
+      - "/dev/i2c-1:/dev/i2c-1"
+    volumes:
+      - "./templates:/app/templates" 
