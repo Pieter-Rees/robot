@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Robot Controller module for humanoid robot.
+Provides classes and functions to control servo motors for robot movements.
+"""
 import time
 from adafruit_servokit import ServoKit
 
@@ -7,6 +11,9 @@ kit = ServoKit(channels=16)
 
 # Define servo indices for each joint
 class Servos:
+    """
+    Constants defining servo motor indices for each joint in the robot.
+    """
     # Example servo mapping - adjust according to your robot's configuration
     HEAD = 0
     SHOULDER_RIGHT = 1
@@ -59,7 +66,14 @@ SERVO_LIMITS = {
 }
 
 def set_servo(servo_index, angle, speed=0.01):
-    """Set a servo to a specific angle with controlled speed"""
+    """
+    Set a servo to a specific angle with controlled speed.
+    
+    Args:
+        servo_index (int): Index of the servo to control
+        angle (float): Target angle in degrees
+        speed (float): Time delay between angle increments (lower = faster)
+    """
     # Apply safety limits
     min_angle, max_angle = SERVO_LIMITS.get(servo_index, (0, 180))
     safe_angle = max(min_angle, min(max_angle, angle))
@@ -80,7 +94,10 @@ def set_servo(servo_index, angle, speed=0.01):
             time.sleep(speed)
 
 def initialize_robot():
-    """Set all servos to their default positions"""
+    """
+    Set all servos to their default positions.
+    Should be called before performing any robot movements.
+    """
     print("Initializing robot to default position...")
     for servo_index, angle in DEFAULT_POSITIONS.items():
         kit.servo[servo_index].angle = angle
@@ -88,7 +105,9 @@ def initialize_robot():
     print("Robot initialized!")
 
 def stand_up():
-    """Sequence to make the robot stand up from a sitting/lying position"""
+    """
+    Execute sequence to make the robot stand up from a sitting/lying position.
+    """
     print("Standing up...")
     
     # This is a simplified stand-up sequence
@@ -120,7 +139,9 @@ def stand_up():
     print("Robot is now standing!")
 
 def step_forward():
-    """Make the robot take a single step forward"""
+    """
+    Make the robot take a single step forward.
+    """
     print("Taking a step forward...")
     
     # Shift weight to right leg
@@ -164,7 +185,10 @@ def step_forward():
     print("Step completed!")
 
 def shutdown():
-    """Safely shut down the robot"""
+    """
+    Safely shut down the robot by disabling all servos.
+    Should be called before powering off the robot.
+    """
     print("Shutting down robot...")
     
     # Slowly move all servos to a neutral/relaxed position

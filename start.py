@@ -1,15 +1,27 @@
 #!/usr/bin/env python3
+"""
+Startup script for the humanoid robot control system.
+Provides a menu-driven interface to access the various components of the system.
+"""
 import os
 import sys
 import subprocess
 import time
 
 def clear_screen():
-    """Clear the terminal screen"""
+    """
+    Clear the terminal screen.
+    OS-independent implementation.
+    """
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def check_dependencies():
-    """Check if required dependencies are installed"""
+    """
+    Check if required Python dependencies are installed.
+    
+    Returns:
+        bool: True if all dependencies are present, False otherwise
+    """
     try:
         import flask
         import adafruit_pca9685
@@ -21,7 +33,12 @@ def check_dependencies():
         return False
 
 def install_dependencies():
-    """Install dependencies from requirements.txt"""
+    """
+    Install dependencies from requirements.txt file.
+    
+    Returns:
+        bool: True if installation successful, False otherwise
+    """
     print("Installing dependencies...")
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
@@ -32,7 +49,9 @@ def install_dependencies():
         return False
 
 def display_header():
-    """Display the application header"""
+    """
+    Display the application header with title and information.
+    """
     clear_screen()
     print("=" * 60)
     print("       HUMANOID ROBOT CONTROL SYSTEM")
@@ -41,7 +60,9 @@ def display_header():
     print("-" * 60)
 
 def display_ip():
-    """Display the Raspberry Pi's IP address"""
+    """
+    Display the Raspberry Pi's IP address for web interface access.
+    """
     try:
         # Using hostname -I to get IP address
         result = subprocess.run(["hostname", "-I"], capture_output=True, text=True)
@@ -56,7 +77,10 @@ def display_ip():
     print("-" * 60)
 
 def main_menu():
-    """Display the main menu and handle user input"""
+    """
+    Display the main menu and handle user input for program selection.
+    Provides options to start different components of the system.
+    """
     while True:
         display_header()
         display_ip()

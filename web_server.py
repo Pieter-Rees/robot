@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Web server for controlling the humanoid robot through a web interface.
+Provides REST API endpoints for robot control and a web UI.
+"""
 from flask import Flask, render_template, request, jsonify
 import threading
 import time
@@ -28,17 +32,38 @@ current_positions = DEFAULT_POSITIONS.copy()
 
 # Safely execute robot functions with lock
 def safe_robot_action(action_func, *args, **kwargs):
+    """
+    Execute robot actions with a mutex lock to prevent concurrent operations.
+    
+    Args:
+        action_func: The function to execute
+        *args: Arguments to pass to the function
+        **kwargs: Keyword arguments to pass to the function
+        
+    Returns:
+        The return value of the action_func
+    """
     with servo_lock:
         return action_func(*args, **kwargs)
 
 @app.route('/')
 def index():
-    """Serve the main control page"""
+    """
+    Serve the main control page.
+    
+    Returns:
+        Rendered index.html template
+    """
     return render_template('index.html')
 
 @app.route('/api/init', methods=['POST'])
 def init_robot():
-    """Initialize the robot"""
+    """
+    Initialize the robot's servos to default positions.
+    
+    Returns:
+        JSON response with status
+    """
     global robot_initialized
     
     try:
@@ -50,7 +75,17 @@ def init_robot():
 
 @app.route('/api/servo', methods=['POST'])
 def move_servo():
-    """Move a specific servo to a position"""
+    """
+    Move a specific servo to a position.
+    
+    Request JSON:
+        servo: Servo index
+        angle: Target angle
+        speed: Speed of movement (optional)
+        
+    Returns:
+        JSON response with status and position
+    """
     if not robot_initialized:
         return jsonify({"status": "error", "message": "Robot not initialized"}), 400
     
@@ -76,7 +111,15 @@ def move_servo():
 
 @app.route('/api/servo/<int:servo_index>', methods=['GET'])
 def get_servo_position(servo_index):
-    """Get the current position of a servo"""
+    """
+    Get the current position of a servo.
+    
+    Args:
+        servo_index: Index of the servo
+        
+    Returns:
+        JSON response with status, position and limits
+    """
     if not robot_initialized:
         return jsonify({"status": "error", "message": "Robot not initialized"}), 400
     
@@ -95,7 +138,12 @@ def get_servo_position(servo_index):
 
 @app.route('/api/stand', methods=['POST'])
 def stand():
-    """Make the robot stand up"""
+    """
+    Make the robot stand up.
+    
+    Returns:
+        JSON response with status
+    """
     if not robot_initialized:
         return jsonify({"status": "error", "message": "Robot not initialized"}), 400
     
@@ -109,7 +157,15 @@ def stand():
 
 @app.route('/api/walk', methods=['POST'])
 def walk():
-    """Make the robot walk forward"""
+    """
+    Make the robot walk forward a specified number of steps.
+    
+    Request JSON:
+        steps: Number of steps to take (default: 1)
+        
+    Returns:
+        JSON response with status
+    """
     if not robot_initialized:
         return jsonify({"status": "error", "message": "Robot not initialized"}), 400
     
@@ -120,6 +176,7 @@ def walk():
         steps = int(steps)
         
         def walk_steps():
+            """Execute multiple steps in sequence."""
             for _ in range(steps):
                 safe_robot_action(step_forward)
                 time.sleep(0.5)
@@ -134,7 +191,12 @@ def walk():
 
 @app.route('/api/shutdown', methods=['POST'])
 def shutdown_robot():
-    """Shutdown the robot safely"""
+    """
+    Shutdown the robot safely.
+    
+    Returns:
+        JSON response with status
+    """
     global robot_initialized
     
     try:
@@ -146,7 +208,12 @@ def shutdown_robot():
 
 @app.route('/api/robot_info', methods=['GET'])
 def get_robot_info():
-    """Get information about the robot configuration"""
+    """
+    Get information about the robot configuration.
+    
+    Returns:
+        JSON response with robot status and servo information
+    """
     servo_info = {}
     
     for servo_index in DEFAULT_POSITIONS.keys():
