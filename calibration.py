@@ -5,10 +5,11 @@ Allows interactive calibration of servo motors and saves calibration data.
 """
 import time
 import sys
-from adafruit_servokit import ServoKit
+from Adafruit_PCA9685 import PCA9685
 
-# Initialize the PCA9685 with 16 channels
-kit = ServoKit(channels=16)
+# Initialize the PCA9685 with default address (0x40)
+pwm = PCA9685()
+pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
 
 # Number of servos on the robot
 NUM_SERVOS = 13
@@ -19,12 +20,24 @@ def servo_test():
     
     Moves each servo to 90 degrees sequentially to verify functionality.
     """
-    print("Testing all servos by setting them to 90 degrees...")
-    for i in range(NUM_SERVOS):
-        print(f"Setting servo {i} to 90 degrees")
-        kit.servo[i].angle = 90
-        time.sleep(0.5)
-    print("Test complete!")
+    print("Testing all servos...")
+    for servo in range(NUM_SERVOS):
+        print(f"Moving servo {servo} to neutral position (90 degrees)")
+        set_servo(servo, 90)
+        time.sleep(1)
+    print("Servo test complete!")
+
+def set_servo(servo_index, angle):
+    """
+    Set servo position using PCA9685.
+    
+    Args:
+        servo_index (int): The servo channel number (0-15)
+        angle (int): The angle to set (0-180)
+    """
+    # Convert angle to pulse width
+    pulse = int(angle * (4096 / 180))  # 4096 is the maximum pulse width for PCA9685
+    pwm.set_pwm(servo_index, 0, pulse)
 
 def calibrate_servo(servo_index):
     """
@@ -48,7 +61,7 @@ def calibrate_servo(servo_index):
     
     # Start at 90 degrees
     current_angle = 90
-    kit.servo[servo_index].angle = current_angle
+    set_servo(servo_index, current_angle)
     print(f"Current angle: {current_angle}")
     
     while True:
@@ -56,15 +69,15 @@ def calibrate_servo(servo_index):
         
         if command in ['+', '=']:
             current_angle = min(180, current_angle + 5)
-            kit.servo[servo_index].angle = current_angle
+            set_servo(servo_index, current_angle)
             print(f"Current angle: {current_angle}")
         elif command == '-':
             current_angle = max(0, current_angle - 5)
-            kit.servo[servo_index].angle = current_angle
+            set_servo(servo_index, current_angle)
             print(f"Current angle: {current_angle}")
         elif command == 'r':
             current_angle = 90
-            kit.servo[servo_index].angle = current_angle
+            set_servo(servo_index, current_angle)
             print(f"Reset to 90 degrees")
         elif command == 's':
             print(f"Saved position: Servo {servo_index} = {current_angle} degrees")
@@ -167,4 +180,4 @@ if __name__ == "__main__":
     finally:
         # Release all servos
         for i in range(NUM_SERVOS):
-            kit.servo[i].angle = None 
+            set_servo(i, None) 

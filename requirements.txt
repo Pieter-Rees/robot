@@ -5,4 +5,6 @@ flask==2.0.1
 Werkzeug==2.0.2
 Jinja2==3.0.3
 itsdangerous==2.0.1
-MarkupSafe==2.0.1 
+MarkupSafe==2.0.1
+Adafruit-PCA9685>=1.0.1
+setuptools>=65.5.1 

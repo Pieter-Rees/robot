@@ -4,10 +4,11 @@ Robot Controller module for humanoid robot.
 Provides classes and functions to control servo motors for robot movements.
 """
 import time
-from adafruit_servokit import ServoKit
+from Adafruit_PCA9685 import PCA9685
 
-# Initialize the PCA9685 with 16 channels (even though we're using 13)
-kit = ServoKit(channels=16)
+# Initialize the PCA9685 with default address (0x40)
+pwm = PCA9685()
+pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
 
 # Define servo indices for each joint
 class Servos:
@@ -78,19 +79,26 @@ def set_servo(servo_index, angle, speed=0.01):
     min_angle, max_angle = SERVO_LIMITS.get(servo_index, (0, 180))
     safe_angle = max(min_angle, min(max_angle, angle))
     
+    # Convert angle to PWM value (0-4095)
+    # Servos typically use 1ms to 2ms pulse width (0-180 degrees)
+    # For 50Hz (20ms period), this is 5% to 10% duty cycle
+    # 4095 * 0.05 = 205 (0 degrees)
+    # 4095 * 0.10 = 410 (180 degrees)
+    pwm_value = int(205 + (safe_angle / 180.0) * 205)
+    
     # Get current position
-    current_angle = kit.servo[servo_index].angle
-    if current_angle is None:
-        current_angle = DEFAULT_POSITIONS.get(servo_index, 90)
+    current_angle = DEFAULT_POSITIONS.get(servo_index, 90)
     
     # Gradually move to target position
     if current_angle < safe_angle:
         for a in range(int(current_angle), int(safe_angle) + 1):
-            kit.servo[servo_index].angle = a
+            pwm_value = int(205 + (a / 180.0) * 205)
+            pwm.set_pwm(servo_index, 0, pwm_value)
             time.sleep(speed)
     else:
         for a in range(int(current_angle), int(safe_angle) - 1, -1):
-            kit.servo[servo_index].angle = a
+            pwm_value = int(205 + (a / 180.0) * 205)
+            pwm.set_pwm(servo_index, 0, pwm_value)
             time.sleep(speed)
 
 def initialize_robot():
@@ -100,7 +108,8 @@ def initialize_robot():
     """
     print("Initializing robot to default position...")
     for servo_index, angle in DEFAULT_POSITIONS.items():
-        kit.servo[servo_index].angle = angle
+        pwm_value = int(205 + (angle / 180.0) * 205)
+        pwm.set_pwm(servo_index, 0, pwm_value)
         time.sleep(0.1)  # Small delay between servo movements
     print("Robot initialized!")
 
@@ -191,9 +200,10 @@ def shutdown():
     """
     print("Shutting down robot...")
     
-    # Slowly move all servos to a neutral/relaxed position
+    # Set all servos to neutral position (90 degrees)
     for servo_index in DEFAULT_POSITIONS.keys():
-        kit.servo[servo_index].angle = None  # Deactivate the servo
+        pwm_value = int(205 + (90 / 180.0) * 205)
+        pwm.set_pwm(servo_index, 0, pwm_value)
     
     print("Robot shutdown complete!")
 
