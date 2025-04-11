@@ -1,7 +1,0 @@
-README.md
-setup.py
-robot_controller.egg-info/PKG-INFO
-robot_controller.egg-info/SOURCES.txt
-robot_controller.egg-info/dependency_links.txt
-robot_controller.egg-info/requires.txt
-robot_controller.egg-info/top_level.txt
