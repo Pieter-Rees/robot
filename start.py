@@ -24,8 +24,6 @@ def check_dependencies():
     """
     try:
         import flask
-        import adafruit_pca9685
-        import adafruit_servokit
         import RPi.GPIO as GPIO
         return True
     except ImportError as e:

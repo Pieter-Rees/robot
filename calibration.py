@@ -4,7 +4,6 @@ Servo calibration tool for humanoid robot.
 Allows interactive calibration of servo motors and saves calibration data.
 """
 import time
-import sys
 from Adafruit_PCA9685 import PCA9685
 
 # Initialize the PCA9685 with default address (0x40)
