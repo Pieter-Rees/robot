@@ -18,6 +18,8 @@
                 <button id="initRobot" class="btn btn-primary">Initialize Robot</button>
                 <button id="shutdownRobot" class="btn btn-danger" disabled>Shutdown Robot</button>
             </div>
+            <div id="robotState" class="robot-state">Robot Status: <span id="robotStateText">Not Initialized</span>
+            </div>
             <div id="statusMessage" class="status"></div>
             <div id="loader" class="loader"></div>
         </div>
@@ -114,6 +116,7 @@
         // Global state
         let robotInitialized = false;
         let servoData = {};
+        let statusTimeout = null;
 
         // DOM Elements
         const initButton = document.getElementById('initRobot');
@@ -123,6 +126,7 @@
         const danceButton = document.getElementById('dance');
         const stepsInput = document.getElementById('steps');
         const statusMessage = document.getElementById('statusMessage');
+        const robotStateText = document.getElementById('robotStateText');
         const loader = document.getElementById('loader');
         const servoControls = document.getElementById('servoControls');
 
@@ -214,6 +218,7 @@
         // Make the robot stand up
         function standUp() {
             setLoading(true);
+            showStatus('Standing up...', 'info', 3000);
             fetch('/api/stand', {
                 method: 'POST',
                 headers: {
@@ -223,16 +228,16 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        showStatus(data.message, 'success');
+                        showStatus('Robot is standing up', 'success', 3000);
                     } else {
-                        showStatus(data.message, 'error');
+                        showStatus(data.message, 'error', 5000);
                     }
                     setLoading(false);
                     // Refresh servo positions after standing up
                     setTimeout(getRobotInfo, 2000);
                 })
                 .catch(error => {
-                    showStatus('Error standing up: ' + error, 'error');
+                    showStatus('Error standing up: ' + error, 'error', 5000);
                     setLoading(false);
                 });
         }
@@ -241,6 +246,7 @@
         function walkForward() {
             const steps = parseInt(stepsInput.value, 10) || 1;
             setLoading(true);
+            showStatus(`Walking forward ${steps} step${steps > 1 ? 's' : ''}...`, 'info', 3000);
             fetch('/api/walk', {
                 method: 'POST',
                 headers: {
@@ -251,16 +257,16 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        showStatus(data.message, 'success');
+                        showStatus(`Walking forward ${steps} step${steps > 1 ? 's' : ''}`, 'success', steps * 2000);
                     } else {
-                        showStatus(data.message, 'error');
+                        showStatus(data.message, 'error', 5000);
                     }
                     setLoading(false);
                     // Refresh servo positions after walking
                     setTimeout(getRobotInfo, steps * 2000);
                 })
                 .catch(error => {
-                    showStatus('Error walking: ' + error, 'error');
+                    showStatus('Error walking: ' + error, 'error', 5000);
                     setLoading(false);
                 });
         }
@@ -352,14 +358,19 @@
         }
 
         // Show status message
-        function showStatus(message, type) {
+        function showStatus(message, type, duration = 5000) {
+            // Clear any existing timeout
+            if (statusTimeout) {
+                clearTimeout(statusTimeout);
+            }
+
             statusMessage.textContent = message;
             statusMessage.className = 'status ' + type;
 
-            // Clear status after 5 seconds
-            setTimeout(() => {
+            // Clear status after specified duration
+            statusTimeout = setTimeout(() => {
                 statusMessage.className = 'status';
-            }, 5000);
+            }, duration);
         }
 
         // Set loading state
@@ -379,6 +390,10 @@
             walkButton.disabled = !robotInitialized;
             danceButton.disabled = !robotInitialized;
             stepsInput.disabled = !robotInitialized;
+
+            // Update persistent robot state
+            robotStateText.textContent = robotInitialized ? 'Initialized' : 'Not Initialized';
+            robotStateText.className = robotInitialized ? 'state-initialized' : 'state-not-initialized';
 
             // Update all servo sliders
             document.querySelectorAll('.servo-slider').forEach(slider => {

@@ -3,11 +3,11 @@
   --secondary-color: #6c757d;
   --success-color: #28a745;
   --danger-color: #dc3545;
-  --background-color: #f8f9fa;
-  --card-background: #ffffff;
-  --text-color: #212529;
+  --background-color: #1a1a1a;
+  --card-background: #2d2d2d;
+  --text-color: #e0e0e0;
   --border-radius: 8px;
-  --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   --transition-speed: 0.3s;
   --header-height: 60px;
   --panel-padding: 20px;
@@ -122,9 +122,31 @@ h2 {
   color: var(--success-color);
 }
 
+.status.info {
+  background-color: rgba(23, 162, 184, 0.2);
+  color: #17a2b8;
+}
+
 .status.error {
   background-color: rgba(220, 53, 69, 0.2);
   color: var(--danger-color);
+}
+
+.robot-state {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: var(--border-radius);
+  background-color: var(--card-background);
+  text-align: center;
+  font-weight: bold;
+}
+
+.state-initialized {
+  color: var(--success-color);
+}
+
+.state-not-initialized {
+  color: var(--secondary-color);
 }
 
 .loader {
@@ -306,6 +328,8 @@ h2 {
   border-radius: var(--border-radius);
   text-align: center;
   transition: all var(--transition-speed) ease;
+  background-color: var(--card-background);
+  color: var(--text-color);
 }
 
 .steps-control input:focus {
@@ -400,7 +424,7 @@ h2 {
 /* Print styles */
 @media print {
   body {
-    background-color: white;
+    background-color: var(--card-background);
   }
 
   .panel {
