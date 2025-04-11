@@ -9,15 +9,31 @@ import time
 import json
 import os
 from ..controllers.mock_robot_controller import MockRobotController
+from ..controllers.robot_controller import RobotController
 from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
 
-# When you're ready to use the actual hardware again, you can simply change the import to:
-# from ..controllers.robot_controller import RobotController
+def is_raspberry_pi():
+    """
+    Check if the code is running on a Raspberry Pi.
+    
+    Returns:
+        bool: True if running on a Raspberry Pi, False otherwise
+    """
+    try:
+        with open('/proc/device-tree/model', 'r') as f:
+            return 'raspberry pi' in f.read().lower()
+    except:
+        return False
 
 app = Flask(__name__)
 
-# Create robot controller instance
-robot = MockRobotController()
+# Create robot controller instance based on platform
+if is_raspberry_pi():
+    print("Running on Raspberry Pi - using real robot controller")
+    robot = RobotController()
+else:
+    print("Not running on Raspberry Pi - using mock robot controller")
+    robot = MockRobotController()
 
 # Flag to track if robot is initialized
 robot_initialized = False
