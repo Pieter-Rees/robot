@@ -102,4 +102,39 @@ class BaseRobotController(ABC):
         
         # Center hips
         self.set_servo(Servos.HIP_RIGHT, 90)
-        self.set_servo(Servos.HIP_LEFT, 90) 
+        self.set_servo(Servos.HIP_LEFT, 90)
+
+    def dance(self):
+        """
+        Execute a fun dance sequence.
+        The dance consists of a series of movements that make the robot appear to dance.
+        """
+        # Initial pose
+        for servo_index, angle in DEFAULT_POSITIONS.items():
+            self.set_servo(servo_index, angle)
+        
+        # Dance sequence
+        # 1. Rock side to side
+        for _ in range(2):
+            self.set_servo(Servos.HIP_RIGHT, 70)
+            self.set_servo(Servos.HIP_LEFT, 110)
+            self.set_servo(Servos.HIP_RIGHT, 110)
+            self.set_servo(Servos.HIP_LEFT, 70)
+        
+        # 2. Knee bends
+        for _ in range(2):
+            self.set_servo(Servos.KNEE_RIGHT, 120)
+            self.set_servo(Servos.KNEE_LEFT, 120)
+            self.set_servo(Servos.KNEE_RIGHT, 90)
+            self.set_servo(Servos.KNEE_LEFT, 90)
+        
+        # 3. Twist and turn
+        for _ in range(2):
+            self.set_servo(Servos.HIP_RIGHT, 60)
+            self.set_servo(Servos.HIP_LEFT, 60)
+            self.set_servo(Servos.HIP_RIGHT, 120)
+            self.set_servo(Servos.HIP_LEFT, 120)
+        
+        # 4. Final pose
+        for servo_index, angle in DEFAULT_POSITIONS.items():
+            self.set_servo(servo_index, angle) 
