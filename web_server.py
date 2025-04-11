@@ -8,16 +8,19 @@ import threading
 import time
 import json
 import os
-from robot_controller import (
+from mock_robot_controller import (
     initialize_robot, 
     set_servo, 
     stand_up, 
     step_forward, 
     shutdown,
+    get_eye_data,
     Servos,
     DEFAULT_POSITIONS,
     SERVO_LIMITS
 )
+
+# When you're ready to use the actual hardware again, you can simply change the import back to robot_controller instead of mock_robot_controller.
 
 app = Flask(__name__)
 
@@ -231,6 +234,26 @@ def get_robot_info():
         "initialized": robot_initialized,
         "servos": servo_info
     })
+
+@app.route('/api/eyes', methods=['GET'])
+def get_eyes_data():
+    """
+    Get data from the eye sensor.
+    
+    Returns:
+        JSON response with distance and ambient light readings
+    """
+    if not robot_initialized:
+        return jsonify({"status": "error", "message": "Robot not initialized"}), 400
+    
+    try:
+        eye_data = get_eye_data()
+        return jsonify({
+            "status": "success",
+            "data": eye_data
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist

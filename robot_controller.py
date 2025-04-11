@@ -5,10 +5,14 @@ Provides classes and functions to control servo motors for robot movements.
 """
 import time
 from Adafruit_PCA9685 import PCA9685
+from sensors import OT703C86
 
 # Initialize the PCA9685 with default address (0x40)
 pwm = PCA9685()
 pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
+
+# Initialize the OT703-C86 sensor
+eye_sensor = OT703C86()
 
 # Define servo indices for each joint
 class Servos:
@@ -103,15 +107,19 @@ def set_servo(servo_index, angle, speed=0.01):
 
 def initialize_robot():
     """
-    Set all servos to their default positions.
-    Should be called before performing any robot movements.
+    Initialize the robot and all its components.
     """
-    print("Initializing robot to default position...")
+    print("Initializing robot...")
+    
+    # Initialize the eye sensor
+    if not eye_sensor.initialize():
+        print("Warning: Failed to initialize eye sensor")
+    
+    # Center all servos
     for servo_index, angle in DEFAULT_POSITIONS.items():
-        pwm_value = int(205 + (angle / 180.0) * 205)
-        pwm.set_pwm(servo_index, 0, pwm_value)
-        time.sleep(0.1)  # Small delay between servo movements
-    print("Robot initialized!")
+        set_servo(servo_index, angle)
+    
+    print("Robot initialization complete!")
 
 def stand_up():
     """
@@ -195,17 +203,96 @@ def step_forward():
 
 def shutdown():
     """
-    Safely shut down the robot by disabling all servos.
-    Should be called before powering off the robot.
+    Shutdown the robot and release all resources.
     """
     print("Shutting down robot...")
     
-    # Set all servos to neutral position (90 degrees)
-    for servo_index in DEFAULT_POSITIONS.keys():
-        pwm_value = int(205 + (90 / 180.0) * 205)
-        pwm.set_pwm(servo_index, 0, pwm_value)
+    # Shutdown the eye sensor
+    eye_sensor.shutdown()
+    
+    # Center all servos
+    for servo_index, angle in DEFAULT_POSITIONS.items():
+        set_servo(servo_index, angle)
     
     print("Robot shutdown complete!")
+
+def get_eye_data():
+    """
+    Get data from the eye sensor.
+    
+    Returns:
+        dict: Dictionary containing distance and ambient light readings
+    """
+    distance = eye_sensor.read_distance()
+    light = eye_sensor.read_ambient_light()
+    
+    return {
+        "distance": distance,
+        "ambient_light": light
+    }
+
+def dance():
+    """
+    Execute a dance sequence combining various movements.
+    """
+    print("Starting dance routine!")
+    
+    # Initial pose
+    set_servo(Servos.HEAD, 90)
+    set_servo(Servos.SHOULDER_RIGHT, 60)
+    set_servo(Servos.SHOULDER_LEFT, 120)
+    set_servo(Servos.ELBOW_RIGHT, 120)
+    set_servo(Servos.ELBOW_LEFT, 60)
+    time.sleep(1)
+    
+    # First move: Rocking side to side
+    for _ in range(3):
+        set_servo(Servos.HIP_RIGHT, 70)
+        set_servo(Servos.HIP_LEFT, 110)
+        time.sleep(0.5)
+        set_servo(Servos.HIP_RIGHT, 110)
+        set_servo(Servos.HIP_LEFT, 70)
+        time.sleep(0.5)
+    
+    # Second move: Arm wave
+    for _ in range(2):
+        set_servo(Servos.SHOULDER_RIGHT, 30)
+        set_servo(Servos.ELBOW_RIGHT, 150)
+        time.sleep(0.3)
+        set_servo(Servos.SHOULDER_RIGHT, 90)
+        set_servo(Servos.ELBOW_RIGHT, 90)
+        time.sleep(0.3)
+        set_servo(Servos.SHOULDER_LEFT, 150)
+        set_servo(Servos.ELBOW_LEFT, 30)
+        time.sleep(0.3)
+        set_servo(Servos.SHOULDER_LEFT, 90)
+        set_servo(Servos.ELBOW_LEFT, 90)
+        time.sleep(0.3)
+    
+    # Third move: Head bobbing with knee bends
+    for _ in range(4):
+        set_servo(Servos.HEAD, 60)
+        set_servo(Servos.KNEE_RIGHT, 120)
+        set_servo(Servos.KNEE_LEFT, 120)
+        time.sleep(0.3)
+        set_servo(Servos.HEAD, 120)
+        set_servo(Servos.KNEE_RIGHT, 60)
+        set_servo(Servos.KNEE_LEFT, 60)
+        time.sleep(0.3)
+    
+    # Final pose
+    set_servo(Servos.HEAD, 90)
+    set_servo(Servos.SHOULDER_RIGHT, 120)
+    set_servo(Servos.SHOULDER_LEFT, 60)
+    set_servo(Servos.ELBOW_RIGHT, 60)
+    set_servo(Servos.ELBOW_LEFT, 120)
+    set_servo(Servos.HIP_RIGHT, 90)
+    set_servo(Servos.HIP_LEFT, 90)
+    set_servo(Servos.KNEE_RIGHT, 90)
+    set_servo(Servos.KNEE_LEFT, 90)
+    time.sleep(1)
+    
+    print("Dance routine completed!")
 
 if __name__ == "__main__":
     try:
@@ -215,6 +302,9 @@ if __name__ == "__main__":
         
         stand_up()
         time.sleep(2)
+        
+        # Uncomment to test dancing
+        dance()
         
         # Uncomment to test walking
         # step_forward()
