@@ -5,7 +5,7 @@ Provides classes and functions to control servo motors for robot movements.
 """
 import time
 from Adafruit_PCA9685 import PCA9685
-from sensors import OT703C86
+from sensors import OT703C86, MPU6050
 from robot.base_controller import BaseRobotController
 from robot.config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
 
@@ -21,6 +21,9 @@ class RobotController(BaseRobotController):
         
         # Initialize the OT703-C86 sensor
         self.eye_sensor = OT703C86()
+        
+        # Initialize the MPU-6050 sensor
+        self.mpu6050 = MPU6050()
     
     def set_servo(self, servo_index, angle, speed=0.01):
         """
@@ -68,6 +71,10 @@ class RobotController(BaseRobotController):
         # Initialize the eye sensor
         if not self.eye_sensor.initialize():
             print("Warning: Failed to initialize eye sensor")
+            
+        # Initialize the MPU-6050 sensor
+        if not self.mpu6050.initialize():
+            print("Warning: Failed to initialize MPU-6050 sensor")
         
         # Center all servos
         for servo_index, angle in DEFAULT_POSITIONS.items():
@@ -83,6 +90,9 @@ class RobotController(BaseRobotController):
         
         # Shutdown the eye sensor
         self.eye_sensor.shutdown()
+        
+        # Shutdown the MPU-6050 sensor
+        self.mpu6050.shutdown()
         
         # Center all servos
         for servo_index, angle in DEFAULT_POSITIONS.items():
@@ -103,6 +113,29 @@ class RobotController(BaseRobotController):
         return {
             "distance": distance,
             "ambient_light": light
+        }
+    
+    def get_mpu6050_data(self):
+        """
+        Get data from the MPU-6050 sensor.
+        
+        Returns:
+            dict: Dictionary containing accelerometer and gyroscope readings
+        """
+        accel_data = self.mpu6050.read_accelerometer()
+        gyro_data = self.mpu6050.read_gyroscope()
+        
+        return {
+            "accelerometer": {
+                "x": accel_data[0] if accel_data else None,
+                "y": accel_data[1] if accel_data else None,
+                "z": accel_data[2] if accel_data else None
+            },
+            "gyroscope": {
+                "x": gyro_data[0] if gyro_data else None,
+                "y": gyro_data[1] if gyro_data else None,
+                "z": gyro_data[2] if gyro_data else None
+            }
         }
     
     def dance(self):

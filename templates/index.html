@@ -214,6 +214,40 @@
             color: var(--primary-color);
         }
 
+        .mpu6050-data {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .mpu6050-section {
+            background-color: var(--background-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+        }
+
+        .mpu6050-section h3 {
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .mpu6050-axis {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        .mpu6050-axis span:first-child {
+            color: var(--secondary-color);
+        }
+
+        .mpu6050-axis span:last-child {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
         .steps-control {
             display: flex;
             align-items: center;
@@ -281,6 +315,45 @@
         </div>
 
         <div class="panel">
+            <h2>Sensor Data</h2>
+            <div class="sensor-data" id="eyes-data">
+                <!-- Eyes sensor data will be populated here -->
+            </div>
+            <div class="mpu6050-data">
+                <div class="mpu6050-section">
+                    <h3>Accelerometer</h3>
+                    <div class="mpu6050-axis">
+                        <span>X:</span>
+                        <span id="accel-x">0.00 g</span>
+                    </div>
+                    <div class="mpu6050-axis">
+                        <span>Y:</span>
+                        <span id="accel-y">0.00 g</span>
+                    </div>
+                    <div class="mpu6050-axis">
+                        <span>Z:</span>
+                        <span id="accel-z">0.00 g</span>
+                    </div>
+                </div>
+                <div class="mpu6050-section">
+                    <h3>Gyroscope</h3>
+                    <div class="mpu6050-axis">
+                        <span>X:</span>
+                        <span id="gyro-x">0.00 °/s</span>
+                    </div>
+                    <div class="mpu6050-axis">
+                        <span>Y:</span>
+                        <span id="gyro-y">0.00 °/s</span>
+                    </div>
+                    <div class="mpu6050-axis">
+                        <span>Z:</span>
+                        <span id="gyro-z">0.00 °/s</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
             <h2>Joint Controls</h2>
             <div id="servoControls" class="servo-controls">
                 <!-- Servo controls will be generated dynamically -->
@@ -331,7 +404,7 @@
             getRobotInfo();
 
             // Start periodic eye data updates
-            setInterval(updateEyeData, 1000);
+            setInterval(updateSensorData, 1000);
         });
 
         // Fetch robot information
@@ -552,23 +625,51 @@
             });
         }
 
-        // Update eye sensor data
-        function updateEyeData() {
-            if (!robotInitialized) return;
-
+        // Update sensor data
+        function updateSensorData() {
             fetch('/api/eyes')
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        document.getElementById('eyeDistance').textContent =
-                            data.data.distance !== null ? `${data.data.distance.toFixed(1)} cm` : '-- cm';
-                        document.getElementById('eyeLight').textContent =
-                            data.data.ambient_light !== null ? data.data.ambient_light : '--';
+                        updateEyesData(data.data);
                     }
                 })
-                .catch(error => {
-                    console.error('Error fetching eye data:', error);
-                });
+                .catch(error => console.error('Error fetching eyes data:', error));
+
+            fetch('/api/mpu6050')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateMPU6050Data(data.data);
+                    }
+                })
+                .catch(error => console.error('Error fetching MPU-6050 data:', error));
+        }
+
+        function updateEyesData(data) {
+            if (data.distance !== null) {
+                document.getElementById('eyeDistance').textContent = `${data.distance.toFixed(1)} cm`;
+            } else {
+                document.getElementById('eyeDistance').textContent = '-- cm';
+            }
+            if (data.ambient_light !== null) {
+                document.getElementById('eyeLight').textContent = data.ambient_light;
+            } else {
+                document.getElementById('eyeLight').textContent = '--';
+            }
+        }
+
+        function updateMPU6050Data(data) {
+            if (data.accelerometer) {
+                document.getElementById('accel-x').textContent = `${data.accelerometer.x.toFixed(2)} g`;
+                document.getElementById('accel-y').textContent = `${data.accelerometer.y.toFixed(2)} g`;
+                document.getElementById('accel-z').textContent = `${data.accelerometer.z.toFixed(2)} g`;
+            }
+            if (data.gyroscope) {
+                document.getElementById('gyro-x').textContent = `${data.gyroscope.x.toFixed(2)} °/s`;
+                document.getElementById('gyro-y').textContent = `${data.gyroscope.y.toFixed(2)} °/s`;
+                document.getElementById('gyro-z').textContent = `${data.gyroscope.z.toFixed(2)} °/s`;
+            }
         }
     </script>
 </body>

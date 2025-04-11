@@ -81,6 +81,36 @@ class MockRobotController(BaseRobotController):
             "ambient_light": light
         }
 
+    def get_mpu6050_data(self):
+        """
+        Get mock data from the MPU-6050 sensor.
+        
+        Returns:
+            dict: Dictionary containing simulated accelerometer and gyroscope readings
+        """
+        # Simulate accelerometer data (±2g range)
+        accel_x = random.uniform(-2.0, 2.0)
+        accel_y = random.uniform(-2.0, 2.0)
+        accel_z = random.uniform(-2.0, 2.0)
+        
+        # Simulate gyroscope data (±250°/s range)
+        gyro_x = random.uniform(-250.0, 250.0)
+        gyro_y = random.uniform(-250.0, 250.0)
+        gyro_z = random.uniform(-250.0, 250.0)
+        
+        return {
+            "accelerometer": {
+                "x": accel_x,
+                "y": accel_y,
+                "z": accel_z
+            },
+            "gyroscope": {
+                "x": gyro_x,
+                "y": gyro_y,
+                "z": gyro_z
+            }
+        }
+
 if __name__ == "__main__":
     try:
         # Example usage

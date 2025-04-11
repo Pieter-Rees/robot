@@ -178,6 +178,21 @@ def get_eyes_data():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route('/api/mpu6050', methods=['GET'])
+def get_mpu6050_data():
+    """Get data from the MPU-6050 sensor."""
+    if not robot_initialized:
+        return jsonify({"status": "error", "message": "Robot not initialized"}), 400
+    
+    try:
+        data = safe_robot_action(robot.get_mpu6050_data)
+        return jsonify({
+            "status": "success",
+            "data": data
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist
     if not os.path.exists('templates'):
