@@ -6,10 +6,12 @@ A Python-based controller for a humanoid robot using the PCA9685 servo controlle
 
 - Full humanoid robot control with 13 servos
 - Web interface for remote control
+- Command-line interface for direct control
 - Real-time sensor monitoring
 - Pre-programmed movements and sequences
 - Safety features and servo limits
 - Mock controller for testing without hardware
+- Calibration tool for servo setup
 
 ## Requirements
 
@@ -18,14 +20,45 @@ A Python-based controller for a humanoid robot using the PCA9685 servo controlle
 - Standard servos (compatible with 50Hz PWM)
 - OT703-C86 sensor (for vision/eyes)
 - MPU-6050 sensor (for motion tracking)
+- Raspberry Pi (recommended) or compatible hardware
 
 ## Installation
 
-1. Clone this repository
+1. Clone this repository:
+
+   ```bash
+   git clone https://github.com/yourusername/robot-controller.git
+   cd robot-controller
+   ```
+
 2. Install the required dependencies:
+
    ```bash
    pip install -e .
    ```
+
+3. (Optional) Install system dependencies for hardware support:
+   ```bash
+   sudo apt-get update
+   sudo apt-get install python3-rpi.gpio
+   ```
+
+## Project Structure
+
+```
+robot-controller/
+├── src/
+│   └── robot/
+│       ├── controllers/     # Robot controller implementations
+│       ├── sensors/         # Sensor drivers
+│       ├── web/            # Web interface
+│       └── utils/          # Utility functions
+├── tests/                  # Test suite
+├── templates/             # Web interface templates
+├── start.py              # Main entry point
+├── calibration.py        # Servo calibration tool
+└── setup.py             # Package configuration
+```
 
 ## Hardware Setup
 
@@ -64,6 +97,22 @@ Connect your servos to the PCA9685 board according to the following mapping:
 
 ## Usage
 
+### Starting the System
+
+Run the main menu:
+
+```bash
+python start.py
+```
+
+This provides options to:
+
+1. Start Web Interface
+2. Start Command Line Controller
+3. Run Calibration Tool
+4. Check and Install Dependencies
+5. Exit
+
 ### Basic Robot Control
 
 ```python
@@ -84,13 +133,14 @@ robot.shutdown()
 
 ### Web Interface
 
-Start the web server:
+The web interface provides a user-friendly way to control the robot. Features include:
 
-```bash
-python web_server.py
-```
+- Real-time servo control with sliders
+- Pre-programmed movements
+- Sensor data monitoring
+- Robot status display
 
-Access the web interface at `http://localhost:5000`
+Access the web interface at `http://localhost:5000` after starting the web server.
 
 #### Web API Endpoints
 
@@ -104,7 +154,32 @@ Access the web interface at `http://localhost:5000`
 - `GET /api/eyes` - Get eye sensor data
 - `GET /api/mpu6050` - Get motion sensor data
 
-### Sensor Data
+### Command Line Interface
+
+The command-line interface provides direct control over the robot:
+
+```bash
+robot-controller
+```
+
+### Calibration Tool
+
+Use the calibration tool to set up and test servo positions:
+
+```bash
+python calibration.py
+```
+
+### Mock Controller
+
+For testing without hardware:
+
+```python
+from robot_controller import MockRobotController
+robot = MockRobotController()
+```
+
+## Sensor Data
 
 The robot provides real-time sensor data through both the Python API and web interface:
 
@@ -125,23 +200,37 @@ The robot provides real-time sensor data through both the Python API and web int
 - Graceful shutdown procedures
 - Error handling and recovery
 - Concurrent operation protection
+- Hardware initialization checks
 
 ## Development
 
 ### Testing
 
-Use the mock controller for testing without hardware:
+1. Use the mock controller for testing without hardware:
 
-```python
-from mock_robot_controller import MockRobotController
-robot = MockRobotController()
-```
+   ```python
+   from robot_controller import MockRobotController
+   robot = MockRobotController()
+   ```
 
-### Adding New Movements
+2. Run the test suite:
+   ```bash
+   python -m pytest tests/
+   ```
 
-1. Create new movement methods in `robot_controller.py`
-2. Add corresponding API endpoints in `web_server.py`
+### Adding New Features
+
+1. Create new movement methods in `src/robot/controllers/robot_controller.py`
+2. Add corresponding API endpoints in `src/robot/web/web_server.py`
 3. Update the web interface in `templates/`
+4. Add tests in `tests/`
+
+### Code Style
+
+- Follow PEP 8 guidelines
+- Use type hints for function parameters and return values
+- Document all public methods and classes
+- Write unit tests for new features
 
 ## License
 
