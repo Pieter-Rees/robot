@@ -410,17 +410,17 @@
         // Update eyes sensor data
         function updateEyesData(data) {
             document.getElementById('eyeDistance').textContent = `${data.distance.toFixed(1)} cm`;
-            document.getElementById('eyeLight').textContent = data.light;
+            document.getElementById('eyeLight').textContent = data.ambient_light;
         }
 
         // Update MPU6050 sensor data
         function updateMPU6050Data(data) {
-            document.getElementById('accel-x').textContent = `${data.accel_x.toFixed(2)} g`;
-            document.getElementById('accel-y').textContent = `${data.accel_y.toFixed(2)} g`;
-            document.getElementById('accel-z').textContent = `${data.accel_z.toFixed(2)} g`;
-            document.getElementById('gyro-x').textContent = `${data.gyro_x.toFixed(2)} °/s`;
-            document.getElementById('gyro-y').textContent = `${data.gyro_y.toFixed(2)} °/s`;
-            document.getElementById('gyro-z').textContent = `${data.gyro_z.toFixed(2)} °/s`;
+            document.getElementById('accel-x').textContent = `${data.accelerometer.x.toFixed(2)} g`;
+            document.getElementById('accel-y').textContent = `${data.accelerometer.y.toFixed(2)} g`;
+            document.getElementById('accel-z').textContent = `${data.accelerometer.z.toFixed(2)} g`;
+            document.getElementById('gyro-x').textContent = `${data.gyroscope.x.toFixed(2)} °/s`;
+            document.getElementById('gyro-y').textContent = `${data.gyroscope.y.toFixed(2)} °/s`;
+            document.getElementById('gyro-z').textContent = `${data.gyroscope.z.toFixed(2)} °/s`;
         }
     </script>
 </body>
