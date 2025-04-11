@@ -4,199 +4,277 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Humanoid Robot Control</title>
+    <title>Robot Control Panel</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+        :root {
+            --primary-color: #4a6bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --text-color: #212529;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        h1,
-        h2 {
-            color: #333;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary-color);
         }
 
         .container {
-            display: flex;
-            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
         }
 
         .panel {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
             padding: 20px;
-            margin-bottom: 20px;
-            flex: 1;
-            min-width: 300px;
+            box-shadow: var(--box-shadow);
         }
 
-        .servo-controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 15px;
+        h2 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
         }
 
-        .servo-card {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 15px;
-        }
-
-        .slider-container {
-            margin-top: 10px;
-        }
-
-        button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 10px 15px;
-            text-align: center;
-            text-decoration: none;
+        .btn {
             display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
             cursor: pointer;
-            border-radius: 4px;
-        }
-
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-
-        .btn-danger {
-            background-color: #f44336;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            margin: 5px;
         }
 
         .btn-primary {
-            background-color: #2196F3;
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #3a5bef;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .status {
+            margin: 10px 0;
             padding: 10px;
-            margin-top: 10px;
-            border-radius: 4px;
-            display: none;
+            border-radius: var(--border-radius);
+            text-align: center;
         }
 
-        .success {
-            background-color: #dff0d8;
-            color: #3c763d;
-            display: block;
+        .status.success {
+            background-color: rgba(40, 167, 69, 0.2);
+            color: var(--success-color);
         }
 
-        .error {
-            background-color: #f2dede;
-            color: #a94442;
-            display: block;
+        .status.error {
+            background-color: rgba(220, 53, 69, 0.2);
+            color: var(--danger-color);
         }
 
         .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .loader.visible {
+            display: block;
+        }
+
+        .loader::after {
+            content: "";
+            display: inline-block;
             width: 20px;
             height: 20px;
-            animation: spin 2s linear infinite;
-            display: inline-block;
-            vertical-align: middle;
-            margin-right: 10px;
+            border: 3px solid var(--primary-color);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
+            to {
                 transform: rotate(360deg);
             }
         }
 
-        .hidden {
-            display: none;
+        .servo-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
         }
 
-        .visible {
-            display: inline-block;
+        .servo-card {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            box-shadow: var(--box-shadow);
+        }
+
+        .servo-card h3 {
+            margin-bottom: 10px;
+            color: var(--secondary-color);
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .servo-slider {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: var(--secondary-color);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .servo-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .servo-value {
+            min-width: 50px;
+            text-align: center;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .sensor-data {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .sensor-value {
+            background-color: var(--background-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            text-align: center;
+        }
+
+        .sensor-value span:first-child {
+            display: block;
+            color: var(--secondary-color);
+            margin-bottom: 5px;
+        }
+
+        .sensor-value span:last-child {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--primary-color);
         }
 
         .steps-control {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-top: 10px;
+            margin: 15px 0;
         }
 
-        input[type=number] {
+        .steps-control input {
             width: 60px;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .servo-slider {
-            width: 100%;
-        }
-
-        .servo-value {
+            padding: 5px;
+            border: 1px solid var(--secondary-color);
+            border-radius: var(--border-radius);
             text-align: center;
-            font-weight: bold;
-            margin-top: 5px;
         }
 
-        .sensor-data {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
 
-        .sensor-value {
-            flex: 1;
-            min-width: 150px;
+            .servo-controls {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 
 <body>
-    <h1>Humanoid Robot Control Panel</h1>
-
-    <div class="panel">
-        <h2>Robot Status</h2>
-        <button id="initRobot" class="btn-primary">Initialize Robot</button>
-        <button id="shutdownRobot" class="btn-danger" disabled>Shutdown Robot</button>
-        <div id="statusMessage" class="status"></div>
-        <div id="loader" class="loader hidden"></div>
-    </div>
+    <h1>🤖 Robot Control Panel</h1>
 
     <div class="container">
         <div class="panel">
+            <h2>Robot Status</h2>
+            <div class="button-group">
+                <button id="initRobot" class="btn btn-primary">Initialize Robot</button>
+                <button id="shutdownRobot" class="btn btn-danger" disabled>Shutdown Robot</button>
+            </div>
+            <div id="statusMessage" class="status"></div>
+            <div id="loader" class="loader hidden"></div>
+        </div>
+
+        <div class="panel">
             <h2>Motion Controls</h2>
-            <button id="standUp" disabled>Stand Up</button>
+            <button id="standUp" class="btn btn-primary" disabled>Stand Up</button>
 
             <div class="steps-control">
-                <button id="walk" disabled>Walk Forward</button>
+                <button id="walk" class="btn btn-primary" disabled>Walk Forward</button>
                 <input type="number" id="steps" value="1" min="1" max="10">
                 <span>steps</span>
             </div>
         </div>
 
         <div class="panel">
-            <h2>Eye Sensor</h2>
+            <h2>👁️ Eye Sensor</h2>
             <div id="eyeData" class="sensor-data">
                 <div class="sensor-value">
-                    <span>Distance:</span>
+                    <span>Distance</span>
                     <span id="eyeDistance">-- cm</span>
                 </div>
                 <div class="sensor-value">
-                    <span>Ambient Light:</span>
+                    <span>Ambient Light</span>
                     <span id="eyeLight">--</span>
                 </div>
             </div>
