@@ -298,6 +298,10 @@
                 <input type="number" id="steps" value="1" min="1" max="10">
                 <span>steps</span>
             </div>
+
+            <div style="margin-top: 15px;">
+                <button id="dance" class="btn btn-primary" disabled>Dance! 🕺</button>
+            </div>
         </div>
 
         <div class="panel">
@@ -388,6 +392,7 @@
         const shutdownButton = document.getElementById('shutdownRobot');
         const standButton = document.getElementById('standUp');
         const walkButton = document.getElementById('walk');
+        const danceButton = document.getElementById('dance');
         const stepsInput = document.getElementById('steps');
         const statusMessage = document.getElementById('statusMessage');
         const loader = document.getElementById('loader');
@@ -399,6 +404,7 @@
             shutdownButton.addEventListener('click', shutdownRobot);
             standButton.addEventListener('click', standUp);
             walkButton.addEventListener('click', walkForward);
+            danceButton.addEventListener('click', dance);
 
             // Get robot info on page load
             getRobotInfo();
@@ -531,6 +537,32 @@
                 });
         }
 
+        // Make the robot dance
+        function dance() {
+            setLoading(true);
+            fetch('/api/dance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showStatus(data.message, 'success');
+                    } else {
+                        showStatus(data.message, 'error');
+                    }
+                    setLoading(false);
+                    // Refresh servo positions after dancing
+                    setTimeout(getRobotInfo, 10000); // Dance routine takes about 10 seconds
+                })
+                .catch(error => {
+                    showStatus('Error dancing: ' + error, 'error');
+                    setLoading(false);
+                });
+        }
+
         // Move a specific servo
         function moveServo(servoIndex, angle) {
             fetch('/api/servo', {
@@ -617,6 +649,7 @@
             shutdownButton.disabled = !robotInitialized;
             standButton.disabled = !robotInitialized;
             walkButton.disabled = !robotInitialized;
+            danceButton.disabled = !robotInitialized;
             stepsInput.disabled = !robotInitialized;
 
             // Update all servo sliders

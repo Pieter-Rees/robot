@@ -152,18 +152,55 @@ class RobotController(BaseRobotController):
         self.set_servo(Servos.ELBOW_LEFT, 60)
         time.sleep(1)
         
-        # First move: Rocking side to side
+        # First move: Rocking side to side with arms
         for _ in range(3):
             self.set_servo(Servos.HIP_RIGHT, 70)
             self.set_servo(Servos.HIP_LEFT, 110)
-            time.sleep(0.5)
+            self.set_servo(Servos.SHOULDER_RIGHT, 80)
+            self.set_servo(Servos.SHOULDER_LEFT, 100)
+            time.sleep(0.4)
             self.set_servo(Servos.HIP_RIGHT, 110)
             self.set_servo(Servos.HIP_LEFT, 70)
+            self.set_servo(Servos.SHOULDER_RIGHT, 40)
+            self.set_servo(Servos.SHOULDER_LEFT, 140)
+            time.sleep(0.4)
+        
+        # Second move: Head bobbing with arm waves
+        for _ in range(2):
+            self.set_servo(Servos.HEAD, 70)
+            self.set_servo(Servos.ELBOW_RIGHT, 150)
+            self.set_servo(Servos.ELBOW_LEFT, 30)
+            time.sleep(0.3)
+            self.set_servo(Servos.HEAD, 110)
+            self.set_servo(Servos.ELBOW_RIGHT, 90)
+            self.set_servo(Servos.ELBOW_LEFT, 90)
+            time.sleep(0.3)
+        
+        # Third move: Full body twist
+        for _ in range(2):
+            self.set_servo(Servos.HIP_RIGHT, 60)
+            self.set_servo(Servos.HIP_LEFT, 120)
+            self.set_servo(Servos.SHOULDER_RIGHT, 40)
+            self.set_servo(Servos.SHOULDER_LEFT, 140)
+            self.set_servo(Servos.HEAD, 60)
+            time.sleep(0.5)
+            self.set_servo(Servos.HIP_RIGHT, 120)
+            self.set_servo(Servos.HIP_LEFT, 60)
+            self.set_servo(Servos.SHOULDER_RIGHT, 140)
+            self.set_servo(Servos.SHOULDER_LEFT, 40)
+            self.set_servo(Servos.HEAD, 120)
             time.sleep(0.5)
         
-        # Return to center
+        # Final pose
+        self.set_servo(Servos.HEAD, 90)
+        self.set_servo(Servos.SHOULDER_RIGHT, 60)
+        self.set_servo(Servos.SHOULDER_LEFT, 120)
+        self.set_servo(Servos.ELBOW_RIGHT, 120)
+        self.set_servo(Servos.ELBOW_LEFT, 60)
         self.set_servo(Servos.HIP_RIGHT, 90)
         self.set_servo(Servos.HIP_LEFT, 90)
+        time.sleep(1)
+        
         print("Dance routine completed!")
 
 if __name__ == "__main__":

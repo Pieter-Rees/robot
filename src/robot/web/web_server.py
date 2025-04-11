@@ -193,6 +193,19 @@ def get_mpu6050_data():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route('/api/dance', methods=['POST'])
+def dance():
+    """Make the robot perform a dance routine."""
+    if not robot_initialized:
+        return jsonify({"status": "error", "message": "Robot not initialized"}), 400
+    
+    try:
+        # Run dance in a separate thread to avoid blocking
+        threading.Thread(target=safe_robot_action, args=(robot.dance,)).start()
+        return jsonify({"status": "success", "message": "Dance routine started"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist
     if not os.path.exists('templates'):
