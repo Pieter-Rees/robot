@@ -22,58 +22,61 @@ wheels/
 
 # Virtual Environment
 venv/
-env/
 ENV/
-.env
-.venv
+env/
+.env/
+.venv/
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
-.DS_Store
 
 # Logs
 *.log
 logs/
 
 # Local development
-*.local
+.env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
 
-# Coverage reports
+# System files
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.csv
+*.dat
+*.out
+*.pid
+*.gz
+*.zip
+*.tar
+*.tar.gz
+
+# Test coverage
+.coverage
 htmlcov/
 .tox/
-.coverage
+.nox/
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
+*.py,cover
 .hypothesis/
+.pytest_cache/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/

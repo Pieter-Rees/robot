@@ -8,11 +8,11 @@ import threading
 import time
 import json
 import os
-from mock_robot_controller import MockRobotController
-from robot.config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
+from ..controllers.mock_robot_controller import MockRobotController
+from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
 
 # When you're ready to use the actual hardware again, you can simply change the import to:
-# from robot_controller import RobotController
+# from ..controllers.robot_controller import RobotController
 
 app = Flask(__name__)
 

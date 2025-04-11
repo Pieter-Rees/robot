@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Mock Robot Controller module for testing without hardware.
-Simulates servo motor control for robot movements.
+Mock Robot Controller for testing without hardware.
+Provides the same interface as the real robot controller but with simulated behavior.
 """
 import time
 import random
-from robot.base_controller import BaseRobotController
-from robot.config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
+from ..base_controller import BaseRobotController
+from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
 
 class MockRobotController(BaseRobotController):
     """

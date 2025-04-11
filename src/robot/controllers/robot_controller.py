@@ -5,9 +5,9 @@ Provides classes and functions to control servo motors for robot movements.
 """
 import time
 from Adafruit_PCA9685 import PCA9685
-from sensors import OT703C86, MPU6050
-from robot.base_controller import BaseRobotController
-from robot.config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
+from ..sensors import OT703C86, MPU6050
+from ..base_controller import BaseRobotController
+from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
 
 class RobotController(BaseRobotController):
     """
