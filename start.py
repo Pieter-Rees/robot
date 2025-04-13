@@ -7,6 +7,26 @@ import os
 import sys
 import subprocess
 import time
+import platform
+from pathlib import Path
+
+# Add src directory to Python path
+src_path = str(Path(__file__).parent / "src")
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
+def is_raspberry_pi():
+    """
+    Check if the code is running on a Raspberry Pi.
+    
+    Returns:
+        bool: True if running on a Raspberry Pi, False otherwise
+    """
+    try:
+        with open('/proc/device-tree/model', 'r') as f:
+            return 'raspberry pi' in f.read().lower()
+    except:
+        return False
 
 def clear_screen():
     """
@@ -24,9 +44,11 @@ def check_dependencies():
     """
     try:
         import flask
-        import adafruit_pca9685
-        import adafruit_servokit
-        import RPi.GPIO as GPIO
+        if is_raspberry_pi():
+            import RPi.GPIO as GPIO
+        from robot.controllers.robot_controller import RobotController
+        from robot.controllers.mock_robot_controller import MockRobotController
+        from robot.sensors import OT703C86, MPU6050
         return True
     except ImportError as e:
         print(f"Missing dependency: {e}")
@@ -41,7 +63,7 @@ def install_dependencies():
     """
     print("Installing dependencies...")
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
         print("Dependencies installed successfully!")
         return True
     except subprocess.CalledProcessError:
@@ -100,7 +122,8 @@ def main_menu():
             print("Starting web interface on port 5000...")
             print("Press Ctrl+C to stop and return to menu")
             try:
-                subprocess.run([sys.executable, "web_server.py"])
+                from robot.web.web_server import app
+                app.run(host='0.0.0.0', port=5000)
             except KeyboardInterrupt:
                 print("\nWeb interface stopped")
                 input("Press Enter to continue...")
@@ -111,9 +134,20 @@ def main_menu():
             print("Starting command line controller...")
             print("Press Ctrl+C to stop and return to menu")
             try:
-                subprocess.run([sys.executable, "robot_controller.py"])
+                if is_raspberry_pi():
+                    from robot.controllers.robot_controller import RobotController
+                    print("Using real robot controller (Raspberry Pi detected)")
+                else:
+                    from robot.controllers.mock_robot_controller import MockRobotController as RobotController
+                    print("Using mock robot controller (non-Raspberry Pi environment)")
+                
+                controller = RobotController()
+                controller.initialize_robot()
+                while True:
+                    time.sleep(1)
             except KeyboardInterrupt:
                 print("\nController stopped")
+                controller.shutdown()
                 input("Press Enter to continue...")
                 
         elif choice == '3':
@@ -122,7 +156,12 @@ def main_menu():
             print("Starting calibration tool...")
             print("Follow the on-screen instructions to calibrate your servos")
             try:
-                subprocess.run([sys.executable, "calibration.py"])
+                if is_raspberry_pi():
+                    from robot.calibration import run_calibration
+                    run_calibration()
+                else:
+                    print("Calibration tool is only available on Raspberry Pi")
+                    print("Please run this on your actual robot hardware")
             except KeyboardInterrupt:
                 print("\nCalibration tool stopped")
             input("Press Enter to continue...")

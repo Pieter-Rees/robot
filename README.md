@@ -1,192 +1,237 @@
-# Humanoid Robot Control System
+# Robot Controller
 
-Control system for a humanoid robot built with a Raspberry Pi Zero W and PCA9685 servo controller.
+A Python-based controller for a humanoid robot using the PCA9685 servo controller. This project provides both hardware control and a web interface for robot operation.
 
-## Table of Contents
-- [Hardware Requirements](#hardware-requirements)
-- [Software Architecture](#software-architecture)
-- [Getting Started](#getting-started)
-  - [Installation](#installation)
-  - [Wiring](#wiring)
-  - [Launching the System](#launching-the-system)
-  - [Calibration](#calibration)
-- [Control Methods](#control-methods)
-  - [Command Line Interface](#command-line-interface)
-  - [Web Interface](#web-interface)
-- [Docker Support](#docker-support)
-- [Customization](#customization)
-- [Troubleshooting](#troubleshooting)
-- [Safety Notes](#safety-notes)
-- [Contributing](#contributing)
+## Features
 
-## Hardware Requirements
+- Full humanoid robot control with 13 servos
+- Web interface for remote control
+- Command-line interface for direct control
+- Real-time sensor monitoring
+- Pre-programmed movements and sequences
+- Safety features and servo limits
+- Mock controller for testing without hardware
+- Calibration tool for servo setup
 
-- Raspberry Pi Zero W (or any Raspberry Pi with WiFi)
-- PCA9685 16-channel PWM/Servo controller
-- 13 servo motors in a humanoid configuration
-- Power supply for servos (separate from Raspberry Pi power)
-- Jumper wires for connections
+## Requirements
 
-## Software Architecture
+- Python 3.6 or higher
+- Adafruit PCA9685 board
+- Standard servos (compatible with 50Hz PWM)
+- OT703-C86 sensor (for vision/eyes)
+- MPU-6050 sensor (for motion tracking)
+- Raspberry Pi (recommended) or compatible hardware
 
-The system consists of four main Python modules:
-
-1. **robot_controller.py**: Core control module for servo movements
-2. **web_server.py**: Flask web server providing API and web interface
-3. **calibration.py**: Interactive tool for servo calibration
-4. **start.py**: Menu-driven launcher for various system components
-
-## Getting Started
-
-### Installation
+## Installation
 
 1. Clone this repository:
+
    ```bash
-   git clone https://github.com/yourusername/robot.git
-   cd robot
+   git clone https://github.com/yourusername/robot-controller.git
+   cd robot-controller
    ```
 
-2. Install dependencies:
+2. Install the required dependencies:
+
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
-### Wiring
+3. (Optional) Install system dependencies for hardware support:
+   ```bash
+   sudo apt-get update
+   sudo apt-get install python3-rpi.gpio
+   ```
 
-Connect the PCA9685 to the Raspberry Pi:
-- SDA to GPIO2 (Pin 3)
-- SCL to GPIO3 (Pin 5)
-- VCC to 3.3V
-- GND to GND
+## Project Structure
 
-Power the servo power rail with a suitable power supply (not from the Pi).
+```
+robot-controller/
+├── src/
+│   └── robot/
+│       ├── controllers/     # Robot controller implementations
+│       ├── sensors/         # Sensor drivers
+│       ├── web/            # Web interface
+│       └── utils/          # Utility functions
+├── tests/                  # Test suite
+├── templates/             # Web interface templates
+├── start.py              # Main entry point
+├── calibration.py        # Servo calibration tool
+└── setup.py             # Package configuration
+```
 
-### Launching the System
+## Hardware Setup
 
-Use the start script, which provides a menu-based interface:
+### Servo Connections
+
+Connect your servos to the PCA9685 board according to the following mapping:
+
+- Channel 0: Head
+- Channel 1: Right Shoulder
+- Channel 2: Left Shoulder
+- Channel 3: Right Elbow
+- Channel 4: Left Elbow
+- Channel 5: Right Hip
+- Channel 6: Left Hip
+- Channel 7: Right Knee
+- Channel 8: Left Knee
+- Channel 9: Right Ankle
+- Channel 10: Left Ankle
+- Channel 11: Right Wrist
+- Channel 12: Left Wrist
+
+### Sensor Connections
+
+- OT703-C86 (Eye Sensor):
+
+  - I2C Address: 0x3C
+  - Provides distance and ambient light measurements
+  - Used for robot vision and environment sensing
+
+- MPU-6050 (Motion Sensor):
+  - I2C Address: 0x68
+  - Provides 6-axis motion tracking:
+    - 3-axis accelerometer (±2g range)
+    - 3-axis gyroscope (±250°/s range)
+  - Used for balance and motion detection
+
+## Usage
+
+### Starting the System
+
+Run the main menu:
 
 ```bash
-# On Raspberry Pi/Linux/macOS:
-python3 start.py
-
-# On Windows:
 python start.py
 ```
 
-The start script allows you to:
-- Start the web interface
-- Run the command-line controller
-- Launch the calibration tool
-- Check and install dependencies
-- View your Raspberry Pi's IP address
+This provides options to:
 
-### Calibration
+1. Start Web Interface
+2. Start Command Line Controller
+3. Run Calibration Tool
+4. Check and Install Dependencies
+5. Exit
 
-Before using the robot, calibrate the servos:
+### Basic Robot Control
+
+```python
+from robot_controller import RobotController
+
+# Initialize the robot
+robot = RobotController()
+robot.initialize_robot()
+
+# Basic movements
+robot.stand_up()
+robot.step_forward()
+robot.dance()
+
+# Shutdown
+robot.shutdown()
+```
+
+### Web Interface
+
+The web interface provides a user-friendly way to control the robot. Features include:
+
+- Real-time servo control with sliders
+- Pre-programmed movements
+- Sensor data monitoring
+- Robot status display
+
+Access the web interface at `http://localhost:5000` after starting the web server.
+
+#### Web API Endpoints
+
+- `POST /api/init` - Initialize the robot
+- `POST /api/servo` - Move a specific servo
+- `GET /api/servo/<index>` - Get servo position
+- `POST /api/stand` - Make robot stand up
+- `POST /api/walk` - Make robot walk forward
+- `POST /api/shutdown` - Shutdown the robot
+- `GET /api/robot_info` - Get robot state information
+- `GET /api/eyes` - Get eye sensor data
+- `GET /api/mpu6050` - Get motion sensor data
+
+### Command Line Interface
+
+The command-line interface provides direct control over the robot:
+
+```bash
+robot-controller
+```
+
+### Calibration Tool
+
+Use the calibration tool to set up and test servo positions:
 
 ```bash
 python calibration.py
 ```
 
-This interactive tool will help you:
-- Test all servos
-- Determine the neutral positions for each servo
-- Save calibration data for use in the main controller
+### Mock Controller
 
-## Control Methods
+For testing without hardware:
 
-### Command Line Interface
-
-Run the main robot controller directly:
-
-```bash
-python robot_controller.py
+```python
+from robot_controller import MockRobotController
+robot = MockRobotController()
 ```
 
-### Web Interface
+## Sensor Data
 
-Run the web server to control your robot through a browser:
+The robot provides real-time sensor data through both the Python API and web interface:
 
-```bash
-python web_server.py
-```
+#### Eye Sensor (OT703-C86)
 
-Then open a web browser and navigate to:
-```
-http://raspberry-pi-ip:5000
-```
+- Distance measurement (in centimeters)
+- Ambient light level (0-255)
 
-Replace `raspberry-pi-ip` with the IP address of your Raspberry Pi. This address is displayed when you run start.py.
+#### Motion Sensor (MPU-6050)
 
-The web interface provides:
-- Easy initialization and shutdown
-- Individual servo control with sliders
-- One-click "Stand Up" and "Walk" functions
+- Accelerometer data (x, y, z in g's)
+- Gyroscope data (x, y, z in degrees per second)
 
-## Docker Support
+## Safety Features
 
-The system can be run in a Docker container with hardware access:
+- Servo movement limits to prevent damage
+- Thread-safe operations
+- Graceful shutdown procedures
+- Error handling and recovery
+- Concurrent operation protection
+- Hardware initialization checks
 
-1. Build the Docker image:
-   ```bash
-   docker-compose build
+## Development
+
+### Testing
+
+1. Use the mock controller for testing without hardware:
+
+   ```python
+   from robot_controller import MockRobotController
+   robot = MockRobotController()
    ```
 
-2. Run the container:
+2. Run the test suite:
    ```bash
-   docker-compose up
+   python -m pytest tests/
    ```
 
-This will start the web server inside a container with access to GPIO and I2C hardware.
+### Adding New Features
 
-## Customization
+1. Create new movement methods in `src/robot/controllers/robot_controller.py`
+2. Add corresponding API endpoints in `src/robot/web/web_server.py`
+3. Update the web interface in `templates/`
+4. Add tests in `tests/`
 
-You can modify the following files to customize your robot:
+### Code Style
 
-- `robot_controller.py`: Core movement functions and servo configurations
-- `web_server.py`: API endpoints for web control
-- `templates/index.html`: Web interface layout and design
-- `servo_calibration.py`: (Generated by calibration tool) Custom servo positions
-
-### Adding New Movements
-
-To add a new movement sequence:
-
-1. Add a new function to `robot_controller.py`
-2. Add a corresponding API endpoint in `web_server.py`
-3. Add UI elements to `templates/index.html` if needed
-
-## Troubleshooting
-
-- **Servo not moving**: 
-  - Check wiring and power supply
-  - Verify I2C connection with `i2cdetect -y 1`
-
-- **Erratic movement**: 
-  - Ensure adequate power supply for all servos
-  - Check for loose connections
-
-- **Robot falling**: 
-  - Adjust servo positions and timing in movement sequences
-  - Recalibrate servos to better positions
-
-- **Web interface not working**: 
-  - Make sure Flask is installed and the server is running
-  - Check network connection and firewall settings
-
-## Safety Notes
-
-- Always power off the robot before making wiring changes
-- Start with slow movements and gradually increase speed
-- Be prepared to disconnect power if robot behaves unexpectedly
-- Keep fingers clear of moving parts
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
----
+- Follow PEP 8 guidelines
+- Use type hints for function parameters and return values
+- Document all public methods and classes
+- Write unit tests for new features
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License
