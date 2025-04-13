@@ -8,9 +8,14 @@ import threading
 import time
 import json
 import os
+import logging
 from ..controllers.mock_robot_controller import MockRobotController
 from ..controllers.robot_controller import RobotController
 from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def is_raspberry_pi():
     """
@@ -29,10 +34,10 @@ app = Flask(__name__)
 
 # Create robot controller instance based on platform
 if is_raspberry_pi():
-    print("Running on Raspberry Pi - using real robot controller")
+    logger.info("Running on Raspberry Pi - using real robot controller")
     robot = RobotController()
 else:
-    print("Not running on Raspberry Pi - using mock robot controller")
+    logger.info("Not running on Raspberry Pi - using mock robot controller")
     robot = MockRobotController()
 
 # Flag to track if robot is initialized
@@ -55,7 +60,12 @@ def safe_robot_action(action_func, *args, **kwargs):
         The return value of the action_func
     """
     with servo_lock:
-        return action_func(*args, **kwargs)
+        try:
+            logger.debug(f"Executing robot action: {action_func.__name__}")
+            return action_func(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error executing robot action {action_func.__name__}: {str(e)}")
+            raise
 
 @app.route('/')
 def index():
@@ -67,10 +77,17 @@ def init_robot():
     """Initialize the robot."""
     global robot_initialized
     try:
+        if robot_initialized:
+            logger.warning("Robot already initialized")
+            return jsonify({"status": "warning", "message": "Robot already initialized"})
+        
+        logger.info("Starting robot initialization...")
         safe_robot_action(robot.initialize_robot)
         robot_initialized = True
+        logger.info("Robot initialization complete")
         return jsonify({"status": "success", "message": "Robot initialized"})
     except Exception as e:
+        logger.error(f"Robot initialization failed: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/servo', methods=['POST'])
