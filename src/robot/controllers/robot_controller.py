@@ -18,6 +18,33 @@ class RobotController(BaseRobotController):
         self.pwm = PCA9685()
         self.pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
     
+    def set_servo(self, servo_index, angle, speed=0.01):
+        """
+        Set a servo to a specific angle with controlled speed.
+        
+        Args:
+            servo_index (int): Index of the servo to control
+            angle (float): Target angle in degrees
+            speed (float): Time delay between angle increments (lower = faster)
+        """
+        # Apply safety limits
+        min_angle, max_angle = SERVO_LIMITS.get(servo_index, (0, 180))
+        safe_angle = max(min_angle, min(max_angle, angle))
+        
+        # Get current position
+        current_angle = self.current_positions.get(servo_index, 90)
+        
+        # Calculate step size based on speed
+        step = 1 if current_angle < safe_angle else -1
+        
+        # Move servo gradually
+        for a in range(int(current_angle), int(safe_angle) + step, step):
+            # Convert angle to pulse width
+            pulse = int(a * (4096 / 180))  # 4096 is the maximum pulse width for PCA9685
+            self.pwm.set_pwm(servo_index, 0, pulse)
+            self.current_positions[servo_index] = a
+            time.sleep(speed)
+    
     def initialize_robot(self):
         """
         Initialize the robot and all its components.
