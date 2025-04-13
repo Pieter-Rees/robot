@@ -137,7 +137,6 @@ The web interface provides a user-friendly way to control the robot. Features in
 
 - Real-time servo control with sliders
 - Pre-programmed movements
-- Sensor data monitoring
 - Robot status display
 
 Access the web interface at `http://localhost:5000` after starting the web server.
@@ -151,8 +150,6 @@ Access the web interface at `http://localhost:5000` after starting the web serve
 - `POST /api/walk` - Make robot walk forward
 - `POST /api/shutdown` - Shutdown the robot
 - `GET /api/robot_info` - Get robot state information
-- `GET /api/eyes` - Get eye sensor data
-- `GET /api/mpu6050` - Get motion sensor data
 
 ### Command Line Interface
 
@@ -178,20 +175,6 @@ For testing without hardware:
 from robot_controller import MockRobotController
 robot = MockRobotController()
 ```
-
-## Sensor Data
-
-The robot provides real-time sensor data through both the Python API and web interface:
-
-#### Eye Sensor (OT703-C86)
-
-- Distance measurement (in centimeters)
-- Ambient light level (0-255)
-
-#### Motion Sensor (MPU-6050)
-
-- Accelerometer data (x, y, z in g's)
-- Gyroscope data (x, y, z in degrees per second)
 
 ## Safety Features
 

@@ -8,15 +8,12 @@ This document provides detailed wiring instructions for connecting all component
 
 - PCA9685 Servo Controller
 - 13 Standard Servos (50Hz PWM compatible)
-- OT703-C86 Sensor (Eye Sensor)
-- MPU-6050 Sensor (Motion Sensor)
 - Raspberry Pi (or compatible hardware)
 
 ## Power Requirements
 
 - PCA9685: 5V DC
 - Servos: 5V DC (ensure power supply can handle total current draw)
-- Sensors: 3.3V DC
 
 ## Wiring Diagram
 
@@ -44,31 +41,9 @@ PCA9685 Board
     └── Channel 12 → Left Wrist Servo
 ```
 
-### OT703-C86 (Eye Sensor) Connections
-
-```
-OT703-C86 Sensor
-├── VCC → 3.3V
-├── GND → Ground
-├── SCL → Raspberry Pi SCL (GPIO 3)
-└── SDA → Raspberry Pi SDA (GPIO 2)
-```
-
-### MPU-6050 (Motion Sensor) Connections
-
-```
-MPU-6050 Sensor
-├── VCC → 3.3V
-├── GND → Ground
-├── SCL → Raspberry Pi SCL (GPIO 3)
-└── SDA → Raspberry Pi SDA (GPIO 2)
-```
-
 ## I2C Addresses
 
 - PCA9685: 0x40 (default)
-- OT703-C86: 0x3C
-- MPU-6050: 0x68
 
 ## Important Notes
 
@@ -79,7 +54,6 @@ MPU-6050 Sensor
 5. Use twisted pair or shielded cables for I2C connections if experiencing interference
 6. Keep I2C connections as short as possible
 7. Consider using a level shifter if connecting 5V devices to 3.3V Raspberry Pi
-8. All I2C devices (PCA9685, OT703-C86, MPU-6050) share the same SDA and SCL pins - this is normal for I2C communication as each device has a unique address
 
 ## Safety Considerations
 
@@ -98,13 +72,7 @@ MPU-6050 Sensor
    - Verify PWM signal connections
    - Check for proper ground connections
 
-2. If sensors are not detected:
-
-   - Verify I2C addresses
-   - Check voltage levels
-   - Ensure proper pull-up resistors are present
-
-3. If experiencing interference:
+2. If experiencing interference:
    - Check ground connections
    - Verify power supply stability
    - Consider adding decoupling capacitors
