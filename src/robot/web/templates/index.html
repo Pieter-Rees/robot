@@ -147,6 +147,10 @@
 
         // Fetch robot information
         function getRobotInfo() {
+            if (!robotInitialized) {
+                return; // Don't make info requests if robot is not initialized
+            }
+
             fetch('/api/robot_info')
                 .then(response => response.json())
                 .then(data => {
@@ -155,6 +159,9 @@
                         servoData = data.servos;
                         updateUIState();
                         generateServoControls();
+                    } else if (data.status === 'error' && data.message === 'Robot not initialized') {
+                        robotInitialized = false;
+                        updateUIState();
                     }
                 })
                 .catch(error => {
@@ -403,11 +410,18 @@
 
         // Update sensor data
         function updateSensorData() {
+            if (!robotInitialized) {
+                return; // Don't make sensor requests if robot is not initialized
+            }
+
             fetch('/api/eyes')
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
                         updateEyesData(data.data);
+                    } else if (data.status === 'error' && data.message === 'Robot not initialized') {
+                        robotInitialized = false;
+                        updateUIState();
                     }
                 })
                 .catch(error => console.error('Error fetching eyes data:', error));
@@ -417,6 +431,9 @@
                 .then(data => {
                     if (data.status === 'success') {
                         updateMPU6050Data(data.data);
+                    } else if (data.status === 'error' && data.message === 'Robot not initialized') {
+                        robotInitialized = false;
+                        updateUIState();
                     }
                 })
                 .catch(error => console.error('Error fetching MPU6050 data:', error));
