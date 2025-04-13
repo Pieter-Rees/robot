@@ -4,9 +4,14 @@ Robot Controller module for humanoid robot.
 Provides classes and functions to control servo motors for robot movements.
 """
 import time
+import logging
 from Adafruit_PCA9685 import PCA9685
 from ..base_controller import BaseRobotController
 from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class RobotController(BaseRobotController):
     """
@@ -14,9 +19,15 @@ class RobotController(BaseRobotController):
     """
     def __init__(self):
         super().__init__()
-        # Initialize the PCA9685 with default address (0x40)
-        self.pwm = PCA9685()
-        self.pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
+        try:
+            logger.info("Initializing PCA9685 servo controller...")
+            # Initialize the PCA9685 with default address (0x40)
+            self.pwm = PCA9685()
+            self.pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
+            logger.info("PCA9685 initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize PCA9685: {str(e)}")
+            raise
     
     def set_servo(self, servo_index, angle, speed=0.01):
         """
@@ -27,23 +38,28 @@ class RobotController(BaseRobotController):
             angle (float): Target angle in degrees
             speed (float): Time delay between angle increments (lower = faster)
         """
-        # Apply safety limits
-        min_angle, max_angle = SERVO_LIMITS.get(servo_index, (0, 180))
-        safe_angle = max(min_angle, min(max_angle, angle))
-        
-        # Get current position
-        current_angle = self.current_positions.get(servo_index, 90)
-        
-        # Calculate step size based on speed
-        step = 1 if current_angle < safe_angle else -1
-        
-        # Move servo gradually
-        for a in range(int(current_angle), int(safe_angle) + step, step):
-            # Convert angle to pulse width
-            pulse = int(a * (4096 / 180))  # 4096 is the maximum pulse width for PCA9685
-            self.pwm.set_pwm(servo_index, 0, pulse)
-            self.current_positions[servo_index] = a
-            time.sleep(speed)
+        try:
+            # Apply safety limits
+            min_angle, max_angle = SERVO_LIMITS.get(servo_index, (0, 180))
+            safe_angle = max(min_angle, min(max_angle, angle))
+            
+            # Get current position
+            current_angle = self.current_positions.get(servo_index, 90)
+            
+            # Calculate step size based on speed
+            step = 1 if current_angle < safe_angle else -1
+            
+            # Move servo gradually
+            for a in range(int(current_angle), int(safe_angle) + step, step):
+                # Convert angle to pulse width
+                pulse = int(a * (4096 / 180))  # 4096 is the maximum pulse width for PCA9685
+                self.pwm.set_pwm(servo_index, 0, pulse)
+                self.current_positions[servo_index] = a
+                time.sleep(speed)
+            logger.debug(f"Servo {servo_index} moved to {safe_angle} degrees")
+        except Exception as e:
+            logger.error(f"Error moving servo {servo_index}: {str(e)}")
+            raise
     
     def initialize_robot(self):
         """
