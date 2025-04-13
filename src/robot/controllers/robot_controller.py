@@ -110,15 +110,49 @@ class RobotController(BaseRobotController):
     
     def initialize_robot(self):
         """
-        Initialize the robot and all its components.
+        Initialize the robot and all its components in a controlled sequence.
         """
         print("Initializing robot...")
         
-        # Center all servos
-        for servo_index, angle in DEFAULT_POSITIONS.items():
-            self.set_servo(servo_index, angle)
-        
-        print("Robot initialization complete!")
+        # Initialize in a specific sequence to maintain balance
+        try:
+            # 1. First, set legs to a stable standing position
+            logger.info("Setting leg positions...")
+            self.set_servo(Servos.HIP_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.HIP_LEFT, 90, speed=0.02)
+            time.sleep(0.5)
+            
+            self.set_servo(Servos.KNEE_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.KNEE_LEFT, 90, speed=0.02)
+            time.sleep(0.5)
+            
+            self.set_servo(Servos.ANKLE_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.ANKLE_LEFT, 90, speed=0.02)
+            time.sleep(0.5)
+            
+            # 2. Then, set arms to a neutral position
+            logger.info("Setting arm positions...")
+            self.set_servo(Servos.SHOULDER_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.SHOULDER_LEFT, 90, speed=0.02)
+            time.sleep(0.5)
+            
+            self.set_servo(Servos.ELBOW_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.ELBOW_LEFT, 90, speed=0.02)
+            time.sleep(0.5)
+            
+            self.set_servo(Servos.WRIST_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.WRIST_LEFT, 90, speed=0.02)
+            time.sleep(0.5)
+            
+            # 3. Finally, set head to center position
+            logger.info("Setting head position...")
+            self.set_servo(Servos.HEAD, 90, speed=0.02)
+            time.sleep(0.5)
+            
+            print("Robot initialization complete!")
+        except Exception as e:
+            logger.error(f"Error during robot initialization: {str(e)}")
+            raise
     
     def shutdown(self):
         """
