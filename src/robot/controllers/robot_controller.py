@@ -25,8 +25,38 @@ class RobotController(BaseRobotController):
             self.pwm = PCA9685()
             self.pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
             logger.info("PCA9685 initialized successfully")
+            
+            # Test PWM output
+            self.test_pwm_output()
         except Exception as e:
             logger.error(f"Failed to initialize PCA9685: {str(e)}")
+            raise
+    
+    def test_pwm_output(self):
+        """
+        Test PWM output on a single servo to verify basic functionality.
+        """
+        logger.info("Testing PWM output...")
+        test_servo = Servos.HEAD  # Using head servo for test
+        try:
+            # Test minimum position
+            logger.info(f"Testing minimum position on servo {test_servo}")
+            self.set_servo(test_servo, 0)
+            time.sleep(1)
+            
+            # Test maximum position
+            logger.info(f"Testing maximum position on servo {test_servo}")
+            self.set_servo(test_servo, 180)
+            time.sleep(1)
+            
+            # Return to center
+            logger.info(f"Returning servo {test_servo} to center position")
+            self.set_servo(test_servo, 90)
+            time.sleep(1)
+            
+            logger.info("PWM test completed")
+        except Exception as e:
+            logger.error(f"PWM test failed: {str(e)}")
             raise
     
     def set_servo(self, servo_index, angle, speed=0.01):
@@ -49,14 +79,31 @@ class RobotController(BaseRobotController):
             # Calculate step size based on speed
             step = 1 if current_angle < safe_angle else -1
             
+            logger.info(f"Moving servo {servo_index} from {current_angle}° to {safe_angle}°")
+            
             # Move servo gradually
             for a in range(int(current_angle), int(safe_angle) + step, step):
                 # Convert angle to pulse width
-                pulse = int(a * (4096 / 180))  # 4096 is the maximum pulse width for PCA9685
+                # For 180-degree servos:
+                # 0 degrees = 150 microseconds (minimum pulse width)
+                # 180 degrees = 600 microseconds (maximum pulse width)
+                # PCA9685 resolution is 4096 for 20ms period (50Hz)
+                # So we need to convert microseconds to PCA9685 counts
+                min_pulse = 150  # microseconds
+                max_pulse = 600  # microseconds
+                period = 20000   # microseconds (20ms for 50Hz)
+                
+                # Convert angle to microseconds
+                pulse_us = min_pulse + (max_pulse - min_pulse) * (a / 180.0)
+                
+                # Convert microseconds to PCA9685 counts
+                pulse = int((pulse_us / period) * 4096)
+                
+                logger.debug(f"Setting servo {servo_index} to angle {a}° (pulse width: {pulse_us}μs, PCA9685 value: {pulse})")
                 self.pwm.set_pwm(servo_index, 0, pulse)
                 self.current_positions[servo_index] = a
                 time.sleep(speed)
-            logger.debug(f"Servo {servo_index} moved to {safe_angle} degrees")
+            logger.info(f"Servo {servo_index} moved to {safe_angle} degrees")
         except Exception as e:
             logger.error(f"Error moving servo {servo_index}: {str(e)}")
             raise
