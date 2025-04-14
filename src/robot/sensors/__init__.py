@@ -8,11 +8,19 @@ import platform
 import sys
 
 # Try to import smbus2, but provide a mock implementation if it fails
+HAS_SMBUS = False
 try:
     import smbus2
-    HAS_SMBUS = True
-except (ImportError, RuntimeError):
-    HAS_SMBUS = False
+    # Test creating an SMBus instance to catch platform-specific errors early
+    try:
+        test_bus = smbus2.SMBus(1)
+        test_bus.close()
+        HAS_SMBUS = True
+    except (OSError, IOError, RuntimeError) as e:
+        print(f"Cannot access hardware I2C: {e}")
+        # Don't set HAS_SMBUS to True since we can't actually use it
+except ImportError:
+    print("smbus2 module not available, using mock implementation")
 
 class MockBus:
     """Mock implementation of SMBus for testing environments."""
