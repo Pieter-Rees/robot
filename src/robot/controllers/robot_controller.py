@@ -69,12 +69,18 @@ class RobotController(BaseRobotController):
             speed (float): Time delay between angle increments (lower = faster)
         """
         try:
+            # Ensure servo_index and angle are the correct types
+            servo_index = int(servo_index)
+            angle = float(angle)
+            
             # Apply safety limits
             min_angle, max_angle = SERVO_LIMITS.get(servo_index, (0, 180))
             safe_angle = max(min_angle, min(max_angle, angle))
             
             # Get current position
             current_angle = self.current_positions.get(servo_index, 90)
+            # Ensure current_angle is a float
+            current_angle = float(current_angle)
             
             # Calculate step size based on speed
             step = 1 if current_angle < safe_angle else -1
