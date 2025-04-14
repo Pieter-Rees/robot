@@ -1,43 +1,55 @@
+#!/usr/bin/env python3
+"""
+Setup script for the humanoid robot project.
+This enables the robot package to be installed with pip.
+"""
+import os
 from setuptools import setup, find_packages
 
+# Read requirements from requirements.txt
+with open('requirements.txt') as f:
+    requirements = []
+    for line in f:
+        # Skip comments and empty lines
+        line = line.strip()
+        if line and not line.startswith('#'):
+            requirements.append(line)
+
+# Read README.md for the long description
+with open('README.md', 'r') as f:
+    long_description = f.read()
+
 setup(
-    name="robot-controller",
-    version="0.1.0",
+    name="humanoid-robot",
+    version="1.0.0",
+    description="Control system for a humanoid robot using Raspberry Pi and PCA9685",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    author="Robot Team",
+    author_email="robot@example.com",
+    url="https://github.com/example/robot",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    install_requires=[
-        "adafruit-circuitpython-pca9685==3.3.9",
-        "adafruit-circuitpython-servokit==1.3.15",
-        "RPi.GPIO==0.7.1",
-        "flask==2.0.1",
-        "Werkzeug==2.0.2",
-        "Jinja2==3.0.3",
-        "itsdangerous==2.0.1",
-        "MarkupSafe==2.0.1",
-        "Adafruit-PCA9685>=1.0.1",
-        "setuptools>=65.5.1",
-    ],
-    python_requires=">=3.6",
-    author="Your Name",
-    author_email="your.email@example.com",
-    description="A Python-based controller for a humanoid robot using the PCA9685 servo controller",
-    long_description=open("README.md").read(),
-    long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/robot-controller",
+    include_package_data=True,
+    python_requires=">=3.7",
+    install_requires=requirements,
+    entry_points={
+        'console_scripts': [
+            'robot=robot:main',
+        ],
+    },
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Education",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Topic :: Education",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    entry_points={
-        "console_scripts": [
-            "robot-controller=robot.controllers.robot_controller:main",
-            "robot-web=robot.web.web_server:main",
-        ],
-    },
+    keywords="robot, raspberry pi, servo, humanoid, education",
 ) 
