@@ -28,9 +28,16 @@ class OT703C86:
             i2c_bus (int): I2C bus number (default: 1)
             address (int): I2C address of the sensor (default: 0x3C)
         """
-        self.bus = smbus2.SMBus(i2c_bus)
-        self.address = address
-        self.initialized = False
+        try:
+            self.bus = smbus2.SMBus(i2c_bus)
+            self.address = address
+            self.initialized = False
+        except Exception as e:
+            print(f"Error initializing I2C bus for OT703C86: {e}")
+            print("Use mock robot controller when not on raspberry pi")
+            self.initialized = False
+            self.bus = None
+            self.address = address
         
     def initialize(self):
         """
@@ -39,6 +46,10 @@ class OT703C86:
         Returns:
             bool: True if initialization successful, False otherwise
         """
+        if self.bus is None:
+            print("I2C bus not available. Sensor initialization skipped.")
+            return False
+            
         try:
             # Write configuration to enable measurements
             self.bus.write_byte_data(self.address, self.REG_CONFIG, 
@@ -62,6 +73,9 @@ class OT703C86:
         Returns:
             float: Distance in centimeters, or None if reading failed
         """
+        if self.bus is None:
+            return None
+            
         if not self.initialized:
             print("Sensor not initialized")
             return None
@@ -89,6 +103,9 @@ class OT703C86:
         Returns:
             int: Light level (0-255), or None if reading failed
         """
+        if self.bus is None:
+            return None
+            
         if not self.initialized:
             print("Sensor not initialized")
             return None
@@ -108,13 +125,16 @@ class OT703C86:
         """
         Shutdown the sensor and release resources.
         """
+        if self.bus is None:
+            return
+            
         try:
             # Disable measurements
             self.bus.write_byte_data(self.address, self.REG_CONFIG, 0x00)
             self.bus.close()
             self.initialized = False
         except Exception as e:
-            print(f"Error shutting down sensor: {e}")
+            print(f"Error shutting down OT703-C86 sensor: {e}")
 
 class MPU6050:
     """
@@ -143,9 +163,16 @@ class MPU6050:
             i2c_bus (int): I2C bus number (default: 1)
             address (int): I2C address of the sensor (default: 0x68)
         """
-        self.bus = smbus2.SMBus(i2c_bus)
-        self.address = address
-        self.initialized = False
+        try:
+            self.bus = smbus2.SMBus(i2c_bus)
+            self.address = address
+            self.initialized = False
+        except Exception as e:
+            print(f"Error initializing I2C bus for MPU6050: {e}")
+            print("Use mock robot controller when not on raspberry pi")
+            self.initialized = False
+            self.bus = None
+            self.address = address
         
     def initialize(self):
         """
@@ -154,6 +181,10 @@ class MPU6050:
         Returns:
             bool: True if initialization successful, False otherwise
         """
+        if self.bus is None:
+            print("I2C bus not available. MPU6050 initialization skipped.")
+            return False
+            
         try:
             # Wake up the sensor
             self.bus.write_byte_data(self.address, self.PWR_MGMT_1, 0x00)
@@ -190,6 +221,9 @@ class MPU6050:
         Returns:
             int: Raw sensor data
         """
+        if self.bus is None:
+            return 0
+            
         high = self.bus.read_byte_data(self.address, addr)
         low = self.bus.read_byte_data(self.address, addr + 1)
         value = (high << 8) | low
@@ -242,10 +276,13 @@ class MPU6050:
         """
         Shutdown the sensor and release resources.
         """
+        if self.bus is None:
+            return
+            
         try:
             # Put the sensor in sleep mode
             self.bus.write_byte_data(self.address, self.PWR_MGMT_1, 0x40)
             self.bus.close()
             self.initialized = False
         except Exception as e:
-            print(f"Error shutting down sensor: {e}") 
+            print(f"Error shutting down MPU-6050 sensor: {e}") 
