@@ -118,37 +118,37 @@ class RobotController(BaseRobotController):
         try:
             # 1. First, set right side to a stable position
             logger.info("Setting right side positions...")
-            self.set_servo(Servos.HIP_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.HIP_RIGHT, 0, speed=0.02)
             time.sleep(0.3)
-            self.set_servo(Servos.KNEE_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.KNEE_RIGHT, 0, speed=0.02)
             time.sleep(0.3)
-            self.set_servo(Servos.ANKLE_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.ANKLE_RIGHT, 0, speed=0.02)
             time.sleep(0.3)
-            self.set_servo(Servos.SHOULDER_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.SHOULDER_RIGHT, 0, speed=0.02)
             time.sleep(0.3)
-            self.set_servo(Servos.ELBOW_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.ELBOW_RIGHT, 0, speed=0.02)
             time.sleep(0.3)
-            self.set_servo(Servos.WRIST_RIGHT, 90, speed=0.02)
+            self.set_servo(Servos.WRIST_RIGHT, 0, speed=0.02)
             time.sleep(0.5)  # Extra delay to ensure stability
             
             # 2. Then, set left side to match
             logger.info("Setting left side positions...")
-            self.set_servo(Servos.HIP_LEFT, 90, speed=0.02)
+            self.set_servo(Servos.HIP_LEFT, 0, speed=0.02)
             time.sleep(0.3)
-            self.set_servo(Servos.KNEE_LEFT, 90, speed=0.02)
+            self.set_servo(Servos.KNEE_LEFT, 0, speed=0.02)
             time.sleep(0.3)
-            self.set_servo(Servos.ANKLE_LEFT, 90, speed=0.02)
+            self.set_servo(Servos.ANKLE_LEFT, 0, speed=0.02)
             time.sleep(0.3)
-            self.set_servo(Servos.SHOULDER_LEFT, 90, speed=0.02)
+            self.set_servo(Servos.SHOULDER_LEFT, 0, speed=0.02)
             time.sleep(0.3)
-            self.set_servo(Servos.ELBOW_LEFT, 90, speed=0.02)
+            self.set_servo(Servos.ELBOW_LEFT, 0, speed=0.02)
             time.sleep(0.3)
-            self.set_servo(Servos.WRIST_LEFT, 90, speed=0.02)
+            self.set_servo(Servos.WRIST_LEFT, 0, speed=0.02)
             time.sleep(0.5)  # Extra delay to ensure stability
             
             # 3. Finally, set head to center position
             logger.info("Setting head position...")
-            self.set_servo(Servos.HEAD, 90, speed=0.02)
+            self.set_servo(Servos.HEAD, 0, speed=0.02)
             time.sleep(0.5)
             
             print("Robot initialization complete!")
