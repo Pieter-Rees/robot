@@ -15,6 +15,11 @@ src_path = str(Path(__file__).parent / "src")
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
+# Also add the parent directory to support 'robot' imports
+parent_path = str(Path(__file__).parent)
+if parent_path not in sys.path:
+    sys.path.insert(0, parent_path)
+
 def is_raspberry_pi():
     """
     Check if the code is running on a Raspberry Pi.
