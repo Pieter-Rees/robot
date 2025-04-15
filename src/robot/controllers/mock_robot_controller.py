@@ -1,20 +1,35 @@
 #!/usr/bin/env python3
 """
-Mock Robot Controller for testing without hardware.
-Provides the same interface as the real robot controller but with simulated behavior.
+Mock Robot Controller module for testing and development without hardware.
+Provides a simulation of the real RobotController for software development.
 """
 import time
+import platform
 import random
 from ..base_controller import BaseRobotController
 from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
 
 class MockRobotController(BaseRobotController):
     """
-    Mock robot controller implementation for testing without hardware.
+    Mock implementation of the robot controller for testing and development.
+    Simulates the behavior of the real controller without requiring hardware.
     """
     def __init__(self):
         super().__init__()
-        print("Initializing mock robot controller...")
+        print("Initializing Mock Robot Controller (no hardware required)")
+        
+        # Mock sensor data
+        self.mock_distance = 50.0  # Initial distance in cm
+        self.mock_light = 128  # Initial light level (0-255)
+        self.mock_accel = (0.0, 0.0, 1.0)  # Initial accelerometer data (x, y, z)
+        self.mock_gyro = (0.0, 0.0, 0.0)  # Initial gyroscope data (x, y, z)
+        
+        # Flag to indicate if the controller is initialized
+        self.is_initialized = False
+        
+        # Set platform for informational purposes
+        self.platform = platform.system()
+        print(f"Running on: {self.platform}")
     
     def set_servo(self, servo_index, angle, speed=0.01):
         """

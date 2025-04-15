@@ -4,10 +4,36 @@ Robot Controller module for humanoid robot.
 Provides classes and functions to control servo motors for robot movements.
 """
 import time
-from Adafruit_PCA9685 import PCA9685
+import platform
+import sys
+
+# Handle platform-specific imports
+try:
+    from Adafruit_PCA9685 import PCA9685
+except ImportError:
+    if platform.system() == 'Windows':
+        print("Warning: Running on Windows - using mock PCA9685 implementation")
+        # Mock PCA9685 implementation for Windows
+        class MockPCA9685:
+            def __init__(self, address=0x40, busnum=None):
+                self.address = address
+                self.busnum = busnum
+                print(f"Initialized Mock PCA9685 on bus {busnum}, address {hex(address)}")
+                
+            def set_pwm_freq(self, freq):
+                print(f"Mock set PWM frequency to {freq}Hz")
+                
+            def set_pwm(self, channel, on, off):
+                print(f"Mock set PWM: channel={channel}, on={on}, off={off}")
+                
+        PCA9685 = MockPCA9685
+    else:
+        print("Error: Adafruit_PCA9685 module not found. Install with: pip install adafruit-pca9685")
+        sys.exit(1)
+
 from ..sensors import OT703C86, MPU6050
 from ..base_controller import BaseRobotController
-from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
+from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS, I2C_CONFIG
 
 class RobotController(BaseRobotController):
     """
@@ -15,9 +41,20 @@ class RobotController(BaseRobotController):
     """
     def __init__(self):
         super().__init__()
-        # Initialize the PCA9685 with default address (0x40)
-        self.pwm = PCA9685()
-        self.pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
+        
+        # Initialize the PCA9685 using I2C_CONFIG
+        try:
+            self.pwm = PCA9685(address=I2C_CONFIG['pca9685_address'], busnum=I2C_CONFIG['default_bus'])
+            self.pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
+        except Exception as e:
+            print(f"Warning: Failed to initialize PCA9685: {e}")
+            if platform.system() == 'Windows':
+                print("Using mock PCA9685 implementation on Windows")
+                self.pwm = MockPCA9685(address=I2C_CONFIG['pca9685_address'], busnum=I2C_CONFIG['default_bus'])
+                self.pwm.set_pwm_freq(50)
+            else:
+                print("Hardware control will not be available")
+                self.pwm = None
         
         # Initialize the OT703-C86 sensor
         self.eye_sensor = OT703C86()
@@ -47,6 +84,12 @@ class RobotController(BaseRobotController):
         
         # Get current position
         current_angle = self.current_positions.get(servo_index, 90)
+        
+        # Check if PWM controller is available
+        if self.pwm is None:
+            print(f"Mock servo movement: servo {servo_index} to angle {safe_angle}")
+            self.current_positions[servo_index] = safe_angle
+            return
         
         # Gradually move to target position
         if current_angle < safe_angle:

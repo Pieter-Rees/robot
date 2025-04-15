@@ -4,7 +4,63 @@ Sensor module for the humanoid robot.
 Implements various sensors including the OT703-C86 for robot vision.
 """
 import time
-import smbus2
+import platform
+import sys
+from ..config import I2C_CONFIG
+
+# Handle platform-specific imports
+try:
+    import smbus2
+except ImportError:
+    if platform.system() == 'Windows':
+        print("Warning: Running on Windows - using mock I2C implementation")
+        # Mock SMBus implementation for Windows
+        class MockSMBus:
+            def __init__(self, bus=None):
+                self.bus = bus
+                print(f"Initialized Mock SMBus on bus {bus}")
+                
+            def write_byte_data(self, addr, reg, data):
+                print(f"Mock write: addr={hex(addr)}, reg={hex(reg)}, data={hex(data)}")
+                return None
+                
+            def read_byte_data(self, addr, reg):
+                print(f"Mock read: addr={hex(addr)}, reg={hex(reg)}")
+                return 0
+                
+            def read_i2c_block_data(self, addr, reg, length):
+                print(f"Mock block read: addr={hex(addr)}, reg={hex(reg)}, length={length}")
+                return [0] * length
+                
+            def close(self):
+                print("Mock SMBus closed")
+                
+        smbus2 = type('smbus2', (), {'SMBus': MockSMBus})
+    else:
+        print("Error: smbus2 module not found. Install with: pip install smbus2")
+        sys.exit(1)
+
+def get_default_bus():
+    """
+    Get the default I2C bus number based on platform.
+    
+    Returns:
+        int: I2C bus number (1 for Raspberry Pi, 0 for mock when not on RPi)
+    """
+    system = platform.system()
+    if system == 'Linux':
+        # Check if we're on a Raspberry Pi
+        try:
+            with open('/proc/device-tree/model', 'r') as f:
+                if 'raspberry pi' in f.read().lower():
+                    return 1  # Raspberry Pi typically uses bus 1
+        except:
+            pass
+        return 1  # Default for Linux
+    elif system == 'Windows':
+        return 0  # Mock bus for Windows
+    else:
+        return 0  # Default for other platforms
 
 class OT703C86:
     """
@@ -20,17 +76,30 @@ class OT703C86:
     CONFIG_MEASURE = 0x01
     CONFIG_LIGHT = 0x02
     
-    def __init__(self, i2c_bus=1, address=0x3C):
+    def __init__(self, i2c_bus=None, address=None):
         """
         Initialize the OT703-C86 sensor.
         
         Args:
-            i2c_bus (int): I2C bus number (default: 1)
-            address (int): I2C address of the sensor (default: 0x3C)
+            i2c_bus (int): I2C bus number (default: from I2C_CONFIG)
+            address (int): I2C address of the sensor (default: from I2C_CONFIG)
         """
-        self.bus = smbus2.SMBus(i2c_bus)
-        self.address = address
-        self.initialized = False
+        if i2c_bus is None:
+            i2c_bus = I2C_CONFIG['default_bus']
+            
+        if address is None:
+            address = I2C_CONFIG['ot703c86_address']
+            
+        try:
+            self.bus = smbus2.SMBus(i2c_bus)
+            self.address = address
+            self.initialized = False
+        except Exception as e:
+            print(f"Warning: Could not initialize I2C bus {i2c_bus} for OT703C86: {e}")
+            # Create a mock bus as fallback
+            self.bus = MockSMBus() if platform.system() == 'Windows' else None
+            self.address = address
+            self.initialized = False
         
     def initialize(self):
         """
@@ -135,17 +204,30 @@ class MPU6050:
     GYRO_YOUT_H = 0x45
     GYRO_ZOUT_H = 0x47
 
-    def __init__(self, i2c_bus=1, address=0x68):
+    def __init__(self, i2c_bus=None, address=None):
         """
         Initialize the MPU-6050 sensor.
         
         Args:
-            i2c_bus (int): I2C bus number (default: 1)
-            address (int): I2C address of the sensor (default: 0x68)
+            i2c_bus (int): I2C bus number (default: from I2C_CONFIG)
+            address (int): I2C address of the sensor (default: from I2C_CONFIG)
         """
-        self.bus = smbus2.SMBus(i2c_bus)
-        self.address = address
-        self.initialized = False
+        if i2c_bus is None:
+            i2c_bus = I2C_CONFIG['default_bus']
+            
+        if address is None:
+            address = I2C_CONFIG['mpu6050_address']
+            
+        try:
+            self.bus = smbus2.SMBus(i2c_bus)
+            self.address = address
+            self.initialized = False
+        except Exception as e:
+            print(f"Warning: Could not initialize I2C bus {i2c_bus} for MPU6050: {e}")
+            # Create a mock bus as fallback
+            self.bus = MockSMBus() if platform.system() == 'Windows' else None
+            self.address = address
+            self.initialized = False
         
     def initialize(self):
         """

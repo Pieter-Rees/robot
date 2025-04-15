@@ -23,10 +23,14 @@ def is_raspberry_pi():
         bool: True if running on a Raspberry Pi, False otherwise
     """
     try:
-        with open('/proc/device-tree/model', 'r') as f:
-            return 'raspberry pi' in f.read().lower()
-    except:
-        return False
+        from robot.controllers.controller_factory import is_raspberry_pi
+        return is_raspberry_pi()
+    except ImportError:
+        try:
+            with open('/proc/device-tree/model', 'r') as f:
+                return 'raspberry pi' in f.read().lower()
+        except:
+            return False
 
 def clear_screen():
     """
@@ -44,10 +48,10 @@ def check_dependencies():
     """
     try:
         import flask
+        from robot.controllers.controller_factory import is_raspberry_pi
         if is_raspberry_pi():
             import RPi.GPIO as GPIO
-        from robot.controllers.robot_controller import RobotController
-        from robot.controllers.mock_robot_controller import MockRobotController
+        from robot.controllers import RobotController, MockRobotController
         from robot.sensors import OT703C86, MPU6050
         return True
     except ImportError as e:
@@ -134,14 +138,8 @@ def main_menu():
             print("Starting command line controller...")
             print("Press Ctrl+C to stop and return to menu")
             try:
-                if is_raspberry_pi():
-                    from robot.controllers.robot_controller import RobotController
-                    print("Using real robot controller (Raspberry Pi detected)")
-                else:
-                    from robot.controllers.mock_robot_controller import MockRobotController as RobotController
-                    print("Using mock robot controller (non-Raspberry Pi environment)")
-                
-                controller = RobotController()
+                from robot.controllers.controller_factory import create_controller
+                controller = create_controller()
                 controller.initialize_robot()
                 while True:
                     time.sleep(1)

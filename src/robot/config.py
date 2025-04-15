@@ -1,9 +1,65 @@
 """
-Configuration file for the robot project.
-Contains shared constants and configurations used across different modules.
+Configuration file for the humanoid robot.
+Defines servo indices, limits, and default positions.
 """
+import platform
 
-# Define servo indices for each joint
+# Platform-specific I2C configuration
+def get_i2c_config():
+    """
+    Get platform-specific I2C configuration.
+    
+    Returns:
+        dict: Dictionary with I2C configuration for the current platform
+    """
+    system = platform.system()
+    
+    if system == 'Linux':
+        # For Raspberry Pi
+        try:
+            with open('/proc/device-tree/model', 'r') as f:
+                model = f.read().lower()
+                if 'raspberry pi' in model:
+                    # Standard RPi configuration
+                    return {
+                        'default_bus': 1,
+                        'pca9685_address': 0x40,
+                        'ot703c86_address': 0x3C,
+                        'mpu6050_address': 0x68
+                    }
+        except:
+            pass
+        
+        # Generic Linux
+        return {
+            'default_bus': 1,
+            'pca9685_address': 0x40,
+            'ot703c86_address': 0x3C,
+            'mpu6050_address': 0x68
+        }
+    
+    elif system == 'Windows':
+        # Windows mock configuration
+        return {
+            'default_bus': 0,  # Mock value for Windows
+            'pca9685_address': 0x40,
+            'ot703c86_address': 0x3C,
+            'mpu6050_address': 0x68
+        }
+    
+    else:
+        # Other platforms (macOS, etc.)
+        return {
+            'default_bus': 0,  # Mock value
+            'pca9685_address': 0x40,
+            'ot703c86_address': 0x3C,
+            'mpu6050_address': 0x68
+        }
+
+# Export I2C configuration
+I2C_CONFIG = get_i2c_config()
+
+# Servo indices (channels on the PCA9685)
 class Servos:
     """
     Constants defining servo motor indices for each joint in the robot.
@@ -44,14 +100,14 @@ SERVO_LIMITS = {
     Servos.HEAD: (45, 135),
     Servos.SHOULDER_RIGHT: (30, 150),
     Servos.SHOULDER_LEFT: (30, 150),
-    Servos.ELBOW_RIGHT: (30, 150),
-    Servos.ELBOW_LEFT: (30, 150),
-    Servos.HIP_RIGHT: (30, 150),
-    Servos.HIP_LEFT: (30, 150),
-    Servos.KNEE_RIGHT: (30, 150),
-    Servos.KNEE_LEFT: (30, 150),
-    Servos.ANKLE_RIGHT: (30, 150),
-    Servos.ANKLE_LEFT: (30, 150),
+    Servos.ELBOW_RIGHT: (60, 180),
+    Servos.ELBOW_LEFT: (0, 120),
+    Servos.HIP_RIGHT: (60, 120),
+    Servos.HIP_LEFT: (60, 120),
+    Servos.KNEE_RIGHT: (60, 120),
+    Servos.KNEE_LEFT: (60, 120),
+    Servos.ANKLE_RIGHT: (60, 120),
+    Servos.ANKLE_LEFT: (60, 120),
     Servos.WRIST_RIGHT: (30, 150),
     Servos.WRIST_LEFT: (30, 150)
 } 
