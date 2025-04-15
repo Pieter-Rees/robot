@@ -24,24 +24,33 @@ A Python-based controller for a humanoid robot using the PCA9685 servo controlle
 
 ## Installation
 
-1. Clone this repository:
+To properly install the robot controller package, run:
 
-   ```bash
-   git clone https://github.com/yourusername/robot-controller.git
-   cd robot-controller
-   ```
+```bash
+# Install the package in development mode
+python install.py
 
-2. Install the required dependencies:
+# Or manually
+pip install -e .
+```
 
-   ```bash
-   pip install -e .
-   ```
+### Troubleshooting Import Issues
 
-3. (Optional) Install system dependencies for hardware support:
-   ```bash
-   sudo apt-get update
-   sudo apt-get install python3-rpi.gpio
-   ```
+If you encounter module import errors like `ModuleNotFoundError: No module named 'robot.controllers.controller_factory'`, make sure:
+
+1. You've installed the package using `pip install -e .` or `python install.py`
+2. There are no conflicting directories with the same name as the package
+3. The `PYTHONPATH` environment variable includes the project's `src` directory
+
+On Windows, you can set the PYTHONPATH environment variable with:
+```
+set PYTHONPATH=%PYTHONPATH%;C:\path\to\project\src
+```
+
+On Linux/Mac:
+```
+export PYTHONPATH=$PYTHONPATH:/path/to/project/src
+```
 
 ## Project Structure
 
