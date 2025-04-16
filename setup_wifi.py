@@ -61,7 +61,7 @@ rsn_pairwise=CCMP
         f.write(hostapd_conf)
     
     # Update hostapd configuration file path
-    run_command("sudo sed -i 's/#DAEMON_CONF=""/DAEMON_CONF="\/etc\/hostapd\/hostapd.conf"/' /etc/default/hostapd")
+    run_command('sudo sed -i "s/#DAEMON_CONF=\"\"/DAEMON_CONF=\"/etc/hostapd/hostapd.conf\"/" /etc/default/hostapd')
 
 def configure_dnsmasq():
     print("Configuring dnsmasq...")
