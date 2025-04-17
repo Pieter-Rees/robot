@@ -15,6 +15,11 @@ src_path = str(Path(__file__).parent / "src")
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
+# Also add the parent directory to support 'robot' imports
+parent_path = str(Path(__file__).parent)
+if parent_path not in sys.path:
+    sys.path.insert(0, parent_path)
+
 def is_raspberry_pi():
     """
     Check if the code is running on a Raspberry Pi.
@@ -23,10 +28,16 @@ def is_raspberry_pi():
         bool: True if running on a Raspberry Pi, False otherwise
     """
     try:
-        with open('/proc/device-tree/model', 'r') as f:
-            return 'raspberry pi' in f.read().lower()
-    except:
-        return False
+        # Import relative to src directory that was added to sys.path
+        from robot.controllers.controller_factory import is_raspberry_pi as pi_check
+        return pi_check()
+    except ImportError:
+        # Fallback if import fails
+        try:
+            with open('/proc/device-tree/model', 'r') as f:
+                return 'raspberry pi' in f.read().lower()
+        except:
+            return False
 
 def clear_screen():
     """
@@ -42,17 +53,46 @@ def check_dependencies():
     Returns:
         bool: True if all dependencies are present, False otherwise
     """
+    missing_deps = []
+    
+    # Check for Flask
     try:
         import flask
-        if is_raspberry_pi():
-            import RPi.GPIO as GPIO
+    except ImportError:
+        missing_deps.append("flask")
+    
+    # Check for basic robot packages
+    try:
+        from robot.base_controller import BaseRobotController
+    except ImportError:
+        missing_deps.append("robot.base_controller")
+    
+    # Check for the controllers
+    try:
         from robot.controllers.robot_controller import RobotController
+    except ImportError:
+        missing_deps.append("robot.controllers.robot_controller")
+    
+    try:
         from robot.controllers.mock_robot_controller import MockRobotController
-        from robot.sensors import OT703C86, MPU6050
-        return True
-    except ImportError as e:
-        print(f"Missing dependency: {e}")
+    except ImportError:
+        missing_deps.append("robot.controllers.mock_robot_controller")
+    
+    # Check for platform-specific dependencies
+    if is_raspberry_pi():
+        try:
+            import RPi.GPIO as GPIO
+        except ImportError:
+            missing_deps.append("RPi.GPIO")
+    
+    # Report results
+    if missing_deps:
+        print("Missing dependencies:")
+        for dep in missing_deps:
+            print(f"  - {dep}")
         return False
+    else:
+        return True
 
 def install_dependencies():
     """
@@ -134,20 +174,21 @@ def main_menu():
             print("Starting command line controller...")
             print("Press Ctrl+C to stop and return to menu")
             try:
-                if is_raspberry_pi():
-                    from robot.controllers.robot_controller import RobotController
-                    print("Using real robot controller (Raspberry Pi detected)")
-                else:
-                    from robot.controllers.mock_robot_controller import MockRobotController as RobotController
-                    print("Using mock robot controller (non-Raspberry Pi environment)")
-                
-                controller = RobotController()
+                # Import this way to avoid potential circular imports
+                sys.path.insert(0, src_path)  # Ensure src path is first in sys.path
+                from robot.controllers import create_controller
+                controller = create_controller()
                 controller.initialize_robot()
                 while True:
                     time.sleep(1)
+            except ImportError as e:
+                print(f"Import error: {e}")
+                print("Try running 'pip install -e .' from the project root directory")
+                input("Press Enter to continue...")
             except KeyboardInterrupt:
                 print("\nController stopped")
-                controller.shutdown()
+                if 'controller' in locals():
+                    controller.shutdown()
                 input("Press Enter to continue...")
                 
         elif choice == '3':
