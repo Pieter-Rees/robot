@@ -1,4 +1,4 @@
-#!/home/pieter/Development/robot/robot/bin/python3
+#!/home/pieter/robot/robot/bin/python
 
 # Copyright (c) 2019-2024, Emmanuel Blot <emmanuel.blot@free.fr>
 # All rights reserved.

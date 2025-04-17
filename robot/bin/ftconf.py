@@ -1,4 +1,4 @@
-#!/home/pieter/Development/robot/robot/bin/python3
+#!/home/pieter/robot/robot/bin/python
 
 """Simple FTDI EEPROM configurator.
 """
