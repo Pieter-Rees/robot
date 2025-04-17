@@ -9,6 +9,7 @@ itsdangerous
 MarkupSafe
 Adafruit-PCA9685
 setuptools
+smbus2
 
 # Development dependencies
 pytest
