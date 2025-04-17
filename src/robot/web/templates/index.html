@@ -38,56 +38,6 @@
         </div>
 
         <div class="panel">
-            <h2>👁️ Eye Sensor</h2>
-            <div id="eyeData" class="sensor-data">
-                <div class="sensor-value">
-                    <span>Distance</span>
-                    <span id="eyeDistance">-- cm</span>
-                </div>
-                <div class="sensor-value">
-                    <span>Ambient Light</span>
-                    <span id="eyeLight">--</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="panel">
-            <h2>Motion Sensor</h2>
-            <div class="mpu6050-data">
-                <div class="mpu6050-section">
-                    <h3>Accelerometer</h3>
-                    <div class="mpu6050-axis">
-                        <span>X:</span>
-                        <span id="accel-x">0.00 g</span>
-                    </div>
-                    <div class="mpu6050-axis">
-                        <span>Y:</span>
-                        <span id="accel-y">0.00 g</span>
-                    </div>
-                    <div class="mpu6050-axis">
-                        <span>Z:</span>
-                        <span id="accel-z">0.00 g</span>
-                    </div>
-                </div>
-                <div class="mpu6050-section">
-                    <h3>Gyroscope</h3>
-                    <div class="mpu6050-axis">
-                        <span>X:</span>
-                        <span id="gyro-x">0.00 °/s</span>
-                    </div>
-                    <div class="mpu6050-axis">
-                        <span>Y:</span>
-                        <span id="gyro-y">0.00 °/s</span>
-                    </div>
-                    <div class="mpu6050-axis">
-                        <span>Z:</span>
-                        <span id="gyro-z">0.00 °/s</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="panel">
             <h2>Joint Controls</h2>
             <div id="servoControls" class="servo-controls">
                 <!-- Servo controls will be generated dynamically -->
@@ -140,9 +90,6 @@
 
             // Get robot info on page load
             getRobotInfo();
-
-            // Start periodic sensor data updates
-            setInterval(updateSensorData, 1000);
         });
 
         // Fetch robot information
@@ -406,53 +353,6 @@
             document.querySelectorAll('.servo-slider').forEach(slider => {
                 slider.disabled = !robotInitialized;
             });
-        }
-
-        // Update sensor data
-        function updateSensorData() {
-            if (!robotInitialized) {
-                return; // Don't make sensor requests if robot is not initialized
-            }
-
-            fetch('/api/eyes')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        updateEyesData(data.data);
-                    } else if (data.status === 'error' && data.message === 'Robot not initialized') {
-                        robotInitialized = false;
-                        updateUIState();
-                    }
-                })
-                .catch(error => console.error('Error fetching eyes data:', error));
-
-            fetch('/api/mpu6050')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        updateMPU6050Data(data.data);
-                    } else if (data.status === 'error' && data.message === 'Robot not initialized') {
-                        robotInitialized = false;
-                        updateUIState();
-                    }
-                })
-                .catch(error => console.error('Error fetching MPU6050 data:', error));
-        }
-
-        // Update eyes sensor data
-        function updateEyesData(data) {
-            document.getElementById('eyeDistance').textContent = `${data.distance.toFixed(1)} cm`;
-            document.getElementById('eyeLight').textContent = data.ambient_light;
-        }
-
-        // Update MPU6050 sensor data
-        function updateMPU6050Data(data) {
-            document.getElementById('accel-x').textContent = `${data.accelerometer.x.toFixed(2)} g`;
-            document.getElementById('accel-y').textContent = `${data.accelerometer.y.toFixed(2)} g`;
-            document.getElementById('accel-z').textContent = `${data.accelerometer.z.toFixed(2)} g`;
-            document.getElementById('gyro-x').textContent = `${data.gyroscope.x.toFixed(2)} °/s`;
-            document.getElementById('gyro-y').textContent = `${data.gyroscope.y.toFixed(2)} °/s`;
-            document.getElementById('gyro-z').textContent = `${data.gyroscope.z.toFixed(2)} °/s`;
         }
     </script>
 </body>

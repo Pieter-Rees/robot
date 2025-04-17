@@ -179,36 +179,6 @@ def get_robot_info():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/api/eyes', methods=['GET'])
-def get_eyes_data():
-    """Get data from the robot's eye sensor."""
-    if not robot_initialized:
-        return jsonify({"status": "error", "message": "Robot not initialized"}), 400
-    
-    try:
-        data = safe_robot_action(robot.get_eye_data)
-        return jsonify({
-            "status": "success",
-            "data": data
-        })
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route('/api/mpu6050', methods=['GET'])
-def get_mpu6050_data():
-    """Get data from the MPU-6050 sensor."""
-    if not robot_initialized:
-        return jsonify({"status": "error", "message": "Robot not initialized"}), 400
-    
-    try:
-        data = safe_robot_action(robot.get_mpu6050_data)
-        return jsonify({
-            "status": "success",
-            "data": data
-        })
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
 @app.route('/api/dance', methods=['POST'])
 def dance():
     """Make the robot perform a dance routine."""

@@ -34,20 +34,30 @@ except ImportError:
 from ..sensors import OT703C86, MPU6050
 from ..base_controller import BaseRobotController
 from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS, I2C_CONFIG
+from robot.controllers.base_controller import BaseController
 
-class RobotController(BaseRobotController):
+class RobotController(BaseController):
     """
-    Real robot controller implementation using PCA9685 servo controller.
+    Concrete implementation of a robot controller.
+    This class handles the actual robot hardware control.
     """
+    
     def __init__(self):
-        super().__init__()
+        """Initialize the robot controller."""
+        self.initialized = False
+        self.current_positions = {}  # Initialize current positions dictionary
+        
+        print("Initializing RobotController...")
+        print(f"I2C_CONFIG: {I2C_CONFIG}")
         
         # Initialize the PCA9685 using I2C_CONFIG
         try:
+            print(f"Attempting to initialize PCA9685 on bus {I2C_CONFIG['default_bus']}, address {hex(I2C_CONFIG['pca9685_address'])}")
             self.pwm = PCA9685(address=I2C_CONFIG['pca9685_address'], busnum=I2C_CONFIG['default_bus'])
             self.pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
+            print("PCA9685 initialized successfully")
         except Exception as e:
-            print(f"Warning: Failed to initialize PCA9685: {e}")
+            print(f"Warning: Failed to initialize PCA9685: {str(e)}")
             if platform.system() == 'Windows':
                 print("Using mock PCA9685 implementation on Windows")
                 self.pwm = MockPCA9685(address=I2C_CONFIG['pca9685_address'], busnum=I2C_CONFIG['default_bus'])
@@ -57,10 +67,71 @@ class RobotController(BaseRobotController):
                 self.pwm = None
         
         # Initialize the OT703-C86 sensor
-        self.eye_sensor = OT703C86()
+        try:
+            self.eye_sensor = OT703C86()
+            print("Eye sensor initialized successfully")
+        except Exception as e:
+            print(f"Warning: Failed to initialize eye sensor: {str(e)}")
+            self.eye_sensor = None
         
         # Initialize the MPU-6050 sensor
-        self.mpu6050 = MPU6050()
+        try:
+            self.mpu6050 = MPU6050()
+            print("MPU6050 sensor initialized successfully")
+        except Exception as e:
+            print(f"Warning: Failed to initialize MPU6050 sensor: {str(e)}")
+            self.mpu6050 = None
+    
+    def initialize_robot(self) -> None:
+        """
+        Initialize the robot hardware and move all servos to their default positions.
+        """
+        if not self.initialized:
+            print("Initializing robot hardware...")
+            
+            # Move all servos to their default positions
+            print("Moving servos to default positions...")
+            for servo_index, default_angle in DEFAULT_POSITIONS.items():
+                print(f"Moving servo {servo_index} to {default_angle} degrees")
+                self.set_servo(servo_index, default_angle)
+                time.sleep(0.1)  # Small delay between servo movements
+            
+            print("Robot initialization complete")
+            self.initialized = True
+    
+    def cleanup(self) -> None:
+        """
+        Clean up resources and safely shut down the robot.
+        """
+        if self.initialized:
+            # TODO: Add actual cleanup code here
+            print("Cleaning up robot resources...")
+            self.initialized = False
+    
+    def shutdown(self) -> None:
+        """
+        Shutdown the robot controller and clean up resources.
+        This method should be called when the program is exiting.
+        """
+        try:
+            print("Shutting down robot controller...")
+            
+            # Release all servos to neutral position
+            for servo_index in range(len(Servos)):
+                self.set_servo(servo_index, 90)  # Move to neutral position
+            
+            # Call the existing cleanup method
+            self.cleanup()
+            
+            # Additional cleanup for hardware
+            if hasattr(self, 'pwm') and self.pwm is not None:
+                # Reset all PWM channels
+                for channel in range(16):  # PCA9685 has 16 channels
+                    self.pwm.set_pwm(channel, 0, 0)
+            
+            print("Robot controller shutdown complete")
+        except Exception as e:
+            print(f"Error during shutdown: {e}")
     
     def set_servo(self, servo_index, angle, speed=0.01):
         """
@@ -104,44 +175,6 @@ class RobotController(BaseRobotController):
                 self.pwm.set_pwm(servo_index, 0, pwm_value)
                 self.current_positions[servo_index] = a
                 time.sleep(speed)
-    
-    def initialize_robot(self):
-        """
-        Initialize the robot and all its components.
-        """
-        print("Initializing robot...")
-        
-        # Initialize the eye sensor
-        if not self.eye_sensor.initialize():
-            print("Warning: Failed to initialize eye sensor")
-            
-        # Initialize the MPU-6050 sensor
-        if not self.mpu6050.initialize():
-            print("Warning: Failed to initialize MPU-6050 sensor")
-        
-        # Center all servos
-        for servo_index, angle in DEFAULT_POSITIONS.items():
-            self.set_servo(servo_index, angle)
-        
-        print("Robot initialization complete!")
-    
-    def shutdown(self):
-        """
-        Shutdown the robot and release all resources.
-        """
-        print("Shutting down robot...")
-        
-        # Shutdown the eye sensor
-        self.eye_sensor.shutdown()
-        
-        # Shutdown the MPU-6050 sensor
-        self.mpu6050.shutdown()
-        
-        # Center all servos
-        for servo_index, angle in DEFAULT_POSITIONS.items():
-            self.set_servo(servo_index, angle)
-        
-        print("Robot shutdown complete!")
     
     def get_eye_data(self):
         """
@@ -246,6 +279,37 @@ class RobotController(BaseRobotController):
         
         print("Dance routine completed!")
 
+    def stand_up(self):
+        """
+        Make the robot stand up by moving all servos to their default positions.
+        """
+        print("Standing up robot...")
+        
+        if not self.initialized:
+            print("Error: Robot not initialized. Call initialize_robot() first.")
+            return False
+            
+        if self.pwm is None:
+            print("Error: PCA9685 controller not available")
+            return False
+            
+        print(f"Using PCA9685 controller: {self.pwm}")
+        print(f"Default positions: {DEFAULT_POSITIONS}")
+        
+        try:
+            # Move all servos to their default positions
+            for servo_index, default_angle in DEFAULT_POSITIONS.items():
+                print(f"Moving servo {servo_index} to {default_angle} degrees")
+                self.set_servo(servo_index, default_angle)
+                time.sleep(0.1)  # Small delay between servo movements
+            
+            print("Robot is standing up")
+            return True
+            
+        except Exception as e:
+            print(f"Error during stand_up: {str(e)}")
+            return False
+
 if __name__ == "__main__":
     try:
         # Example usage
@@ -258,4 +322,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nProgram interrupted by user")
     finally:
-        controller.shutdown() 
+        controller.cleanup() 
