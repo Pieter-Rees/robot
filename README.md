@@ -1,120 +1,121 @@
-# Robot Controller
+# 🤖 Robot Controller
 
-A Python-based controller for a humanoid robot using the PCA9685 servo controller. This project provides both hardware control and a web interface for robot operation.
+[![Python Version](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](#documentation)
 
-## Features
+A comprehensive Python-based controller for a humanoid robot using the PCA9685 servo controller. This project provides both hardware control and a modern web interface for robot operation, making it perfect for robotics enthusiasts, educators, and developers.
 
-- Full humanoid robot control with 13 servos
-- Web interface for remote control
-- Command-line interface for direct control
-- Real-time sensor monitoring
-- Pre-programmed movements and sequences
-- Safety features and servo limits
-- Mock controller for testing without hardware
-- Calibration tool for servo setup
+## ✨ Features
 
-## Requirements
+- **Full Humanoid Control**
+
+  - 13 servo control with precise positioning
+  - Smooth movement sequences
+  - Pre-programmed movements and dances
+  - Safety features and servo limits
+
+- **Modern Web Interface**
+
+  - Real-time servo control with intuitive sliders
+  - Live sensor data visualization
+  - Pre-programmed movement sequences
+  - Responsive design for all devices
+
+- **Advanced Sensors**
+
+  - OT703-C86 vision sensor for environment awareness
+  - MPU-6050 motion sensor for balance and orientation
+  - Real-time data monitoring and logging
+
+- **Development Tools**
+  - Mock controller for testing without hardware
+  - Comprehensive calibration tools
+  - Detailed logging and debugging
+  - Extensive test suite
+
+## 🚀 Quick Start
+
+### Prerequisites
 
 - Python 3.6 or higher
+- Raspberry Pi (recommended) or compatible hardware
 - Adafruit PCA9685 board
 - Standard servos (compatible with 50Hz PWM)
 - OT703-C86 sensor (for vision/eyes)
 - MPU-6050 sensor (for motion tracking)
-- Raspberry Pi (recommended) or compatible hardware
 
-## Installation
+### Installation
 
-To properly install the robot controller package, run:
+1. Clone the repository:
 
-```bash
-# Install the package in development mode
-python install.py
+   ```bash
+   git clone https://github.com/yourusername/robot-controller.git
+   cd robot-controller
+   ```
 
-# Or manually
-pip install -e .
-```
+2. Install dependencies:
 
-### Troubleshooting Import Issues
+   ```bash
+   # Using the installation script (recommended)
+   python install.py
 
-If you encounter module import errors like `ModuleNotFoundError: No module named 'robot.controllers.controller_factory'`, make sure:
+   # Or manually
+   pip install -e .
+   ```
 
-1. You've installed the package using `pip install -e .` or `python install.py`
-2. There are no conflicting directories with the same name as the package
-3. The `PYTHONPATH` environment variable includes the project's `src` directory
+3. Configure your hardware:
+   - Follow the [hardware setup guide](#hardware-setup)
+   - Run the calibration tool: `python calibration.py`
 
-On Windows, you can set the PYTHONPATH environment variable with:
-```
-set PYTHONPATH=%PYTHONPATH%;C:\path\to\project\src
-```
-
-On Linux/Mac:
-```
-export PYTHONPATH=$PYTHONPATH:/path/to/project/src
-```
-
-## Project Structure
-
-```
-robot-controller/
-├── src/
-│   └── robot/
-│       ├── controllers/     # Robot controller implementations
-│       ├── sensors/         # Sensor drivers
-│       ├── web/            # Web interface
-│       └── utils/          # Utility functions
-├── tests/                  # Test suite
-├── templates/             # Web interface templates
-├── start.py              # Main entry point
-├── calibration.py        # Servo calibration tool
-└── setup.py             # Package configuration
-```
-
-## Hardware Setup
+## 🛠️ Hardware Setup
 
 ### Servo Connections
 
-Connect your servos to the PCA9685 board according to the following mapping:
+| Channel | Component      | Description                   |
+| ------- | -------------- | ----------------------------- |
+| 0       | Head           | Controls head movement        |
+| 1       | Right Shoulder | Controls right arm movement   |
+| 2       | Left Shoulder  | Controls left arm movement    |
+| 3       | Right Elbow    | Controls right elbow movement |
+| 4       | Left Elbow     | Controls left elbow movement  |
+| 5       | Right Hip      | Controls right leg movement   |
+| 6       | Left Hip       | Controls left leg movement    |
+| 7       | Right Knee     | Controls right knee movement  |
+| 8       | Left Knee      | Controls left knee movement   |
+| 9       | Right Ankle    | Controls right foot movement  |
+| 10      | Left Ankle     | Controls left foot movement   |
+| 11      | Right Wrist    | Controls right hand movement  |
+| 12      | Left Wrist     | Controls left hand movement   |
 
-- Channel 0: Head
-- Channel 1: Right Shoulder
-- Channel 2: Left Shoulder
-- Channel 3: Right Elbow
-- Channel 4: Left Elbow
-- Channel 5: Right Hip
-- Channel 6: Left Hip
-- Channel 7: Right Knee
-- Channel 8: Left Knee
-- Channel 9: Right Ankle
-- Channel 10: Left Ankle
-- Channel 11: Right Wrist
-- Channel 12: Left Wrist
+### Sensor Configuration
 
-### Sensor Connections
+#### OT703-C86 (Eye Sensor)
 
-- OT703-C86 (Eye Sensor):
+- I2C Address: 0x3C
+- Features:
+  - Distance measurement (0-200cm)
+  - Ambient light sensing
+  - High accuracy and reliability
 
-  - I2C Address: 0x3C
-  - Provides distance and ambient light measurements
-  - Used for robot vision and environment sensing
+#### MPU-6050 (Motion Sensor)
 
-- MPU-6050 (Motion Sensor):
-  - I2C Address: 0x68
-  - Provides 6-axis motion tracking:
-    - 3-axis accelerometer (±2g range)
-    - 3-axis gyroscope (±250°/s range)
-  - Used for balance and motion detection
+- I2C Address: 0x68
+- Features:
+  - 3-axis accelerometer (±2g range)
+  - 3-axis gyroscope (±250°/s range)
+  - Temperature sensor
+  - Digital Motion Processor
 
-## Usage
+## 💻 Usage
 
 ### Starting the System
-
-Run the main menu:
 
 ```bash
 python start.py
 ```
 
-This provides options to:
+This launches the main menu with options to:
 
 1. Start Web Interface
 2. Start Command Line Controller
@@ -136,111 +137,115 @@ robot.stand_up()
 robot.step_forward()
 robot.dance()
 
+# Advanced movements
+robot.wave_hand("right")
+robot.look_around()
+robot.perform_sequence("greeting")
+
 # Shutdown
 robot.shutdown()
 ```
 
 ### Web Interface
 
-The web interface provides a user-friendly way to control the robot. Features include:
+Access the web interface at `http://localhost:5000` after starting the web server.
+
+#### Features
 
 - Real-time servo control with sliders
 - Pre-programmed movements
 - Sensor data monitoring
 - Robot status display
+- Movement sequence programming
 
-Access the web interface at `http://localhost:5000` after starting the web server.
+#### API Endpoints
 
-#### Web API Endpoints
+| Endpoint             | Method | Description                 |
+| -------------------- | ------ | --------------------------- |
+| `/api/init`          | POST   | Initialize the robot        |
+| `/api/servo`         | POST   | Move a specific servo       |
+| `/api/servo/<index>` | GET    | Get servo position          |
+| `/api/stand`         | POST   | Make robot stand up         |
+| `/api/walk`          | POST   | Make robot walk forward     |
+| `/api/shutdown`      | POST   | Shutdown the robot          |
+| `/api/robot_info`    | GET    | Get robot state information |
+| `/api/eyes`          | GET    | Get eye sensor data         |
+| `/api/mpu6050`       | GET    | Get motion sensor data      |
 
-- `POST /api/init` - Initialize the robot
-- `POST /api/servo` - Move a specific servo
-- `GET /api/servo/<index>` - Get servo position
-- `POST /api/stand` - Make robot stand up
-- `POST /api/walk` - Make robot walk forward
-- `POST /api/shutdown` - Shutdown the robot
-- `GET /api/robot_info` - Get robot state information
-- `GET /api/eyes` - Get eye sensor data
-- `GET /api/mpu6050` - Get motion sensor data
+## 🔧 Troubleshooting
 
-### Command Line Interface
+### Common Issues
 
-The command-line interface provides direct control over the robot:
+1. **Module Import Errors**
 
-```bash
-robot-controller
-```
-
-### Calibration Tool
-
-Use the calibration tool to set up and test servo positions:
-
-```bash
-python calibration.py
-```
-
-### Mock Controller
-
-For testing without hardware:
-
-```python
-from robot_controller import MockRobotController
-robot = MockRobotController()
-```
-
-## Sensor Data
-
-The robot provides real-time sensor data through both the Python API and web interface:
-
-#### Eye Sensor (OT703-C86)
-
-- Distance measurement (in centimeters)
-- Ambient light level (0-255)
-
-#### Motion Sensor (MPU-6050)
-
-- Accelerometer data (x, y, z in g's)
-- Gyroscope data (x, y, z in degrees per second)
-
-## Safety Features
-
-- Servo movement limits to prevent damage
-- Thread-safe operations
-- Graceful shutdown procedures
-- Error handling and recovery
-- Concurrent operation protection
-- Hardware initialization checks
-
-## Development
-
-### Testing
-
-1. Use the mock controller for testing without hardware:
-
-   ```python
-   from robot_controller import MockRobotController
-   robot = MockRobotController()
+   ```bash
+   # Set PYTHONPATH
+   export PYTHONPATH=$PYTHONPATH:$(pwd)/src
    ```
 
-2. Run the test suite:
+2. **Servo Jittering**
+
+   - Check power supply voltage
+   - Ensure proper grounding
+   - Verify servo connections
+
+3. **Sensor Communication Issues**
+   - Verify I2C addresses
+   - Check wiring connections
+   - Ensure proper voltage levels
+
+### Debugging
+
+Enable debug logging:
+
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+### Development Setup
+
+1. Install development dependencies:
+
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+2. Run tests:
+
    ```bash
    python -m pytest tests/
    ```
 
-### Adding New Features
+3. Check code style:
+   ```bash
+   pre-commit run --all-files
+   ```
 
-1. Create new movement methods in `src/robot/controllers/robot_controller.py`
-2. Add corresponding API endpoints in `src/robot/web/web_server.py`
-3. Update the web interface in `templates/`
-4. Add tests in `tests/`
+## 📚 Documentation
 
-### Code Style
+For detailed documentation, visit our [documentation site](https://your-docs-site.com).
 
-- Follow PEP 8 guidelines
-- Use type hints for function parameters and return values
-- Document all public methods and classes
-- Write unit tests for new features
+## 📄 License
 
-## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-MIT License
+## 🙏 Acknowledgments
+
+- Adafruit for the PCA9685 library
+- Open source robotics community
+- Contributors and maintainers
+
+---
+
+Made with ❤️ by the Robot Controller Team
