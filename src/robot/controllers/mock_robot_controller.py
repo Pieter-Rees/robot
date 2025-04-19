@@ -71,12 +71,10 @@ class MockRobotController(BaseRobotController):
     
     def shutdown(self):
         """
-        Simulate shutting down the robot.
+        Shutdown the mock robot controller.
         """
-        print("Shutting down robot...")
-        for servo_index in DEFAULT_POSITIONS.keys():
-            self.current_positions[servo_index] = 90
-        print("Robot shutdown complete!")
+        print("Shutting down mock robot controller")
+        self.initialized = False
     
     def get_eye_data(self):
         """

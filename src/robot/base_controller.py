@@ -28,113 +28,35 @@ class BaseRobotController(ABC):
     
     @abstractmethod
     def initialize_robot(self):
-        """Initialize the robot and all its components."""
+        """
+        Initialize the robot controller and prepare for operation.
+        """
         pass
     
     @abstractmethod
     def shutdown(self):
-        """Shutdown the robot and release all resources."""
-        pass
-    
-    @abstractmethod
-    def get_eye_data(self):
         """
-        Get data from the eye sensor.
-        
-        Returns:
-            dict: Dictionary containing distance and ambient light readings
+        Shutdown the robot controller and release resources.
         """
         pass
     
     def stand_up(self):
         """
-        Execute sequence to make the robot stand up from a sitting/lying position.
+        Move the robot to a standing position.
         """
-        # Center all servos
-        for servo_index, angle in DEFAULT_POSITIONS.items():
-            self.set_servo(servo_index, angle)
-        
-        # Bend knees
-        self.set_servo(Servos.KNEE_RIGHT, 120)
-        self.set_servo(Servos.KNEE_LEFT, 120)
-        
-        # Lean forward slightly
-        self.set_servo(Servos.HIP_RIGHT, 110)
-        self.set_servo(Servos.HIP_LEFT, 110)
-        
-        # Straighten knees to stand up
-        self.set_servo(Servos.KNEE_RIGHT, 90)
-        self.set_servo(Servos.KNEE_LEFT, 90)
-        
-        # Return hips to center
-        self.set_servo(Servos.HIP_RIGHT, 90)
-        self.set_servo(Servos.HIP_LEFT, 90)
+        for servo_index, default_angle in DEFAULT_POSITIONS.items():
+            self.set_servo(servo_index, default_angle)
     
     def step_forward(self):
         """
-        Make the robot take a single step forward.
+        Make the robot take a step forward.
         """
-        # Shift weight to right leg
-        self.set_servo(Servos.HIP_RIGHT, 100)
-        self.set_servo(Servos.HIP_LEFT, 100)
-        
-        # Lift left leg
-        self.set_servo(Servos.KNEE_LEFT, 120)
-        
-        # Move left leg forward
-        self.set_servo(Servos.HIP_LEFT, 70)
-        
-        # Lower left leg
-        self.set_servo(Servos.KNEE_LEFT, 90)
-        
-        # Shift weight to left leg
-        self.set_servo(Servos.HIP_RIGHT, 80)
-        self.set_servo(Servos.HIP_LEFT, 80)
-        
-        # Lift right leg
-        self.set_servo(Servos.KNEE_RIGHT, 120)
-        
-        # Move right leg forward
-        self.set_servo(Servos.HIP_RIGHT, 110)
-        
-        # Lower right leg
-        self.set_servo(Servos.KNEE_RIGHT, 90)
-        
-        # Center hips
-        self.set_servo(Servos.HIP_RIGHT, 90)
-        self.set_servo(Servos.HIP_LEFT, 90)
-
+        # Step forward sequence implementation
+        pass
+    
     def dance(self):
         """
-        Execute a fun dance sequence.
-        The dance consists of a series of movements that make the robot appear to dance.
+        Perform a dance sequence.
         """
-        # Initial pose
-        for servo_index, angle in DEFAULT_POSITIONS.items():
-            self.set_servo(servo_index, angle)
-        
-        # Dance sequence
-        # 1. Rock side to side
-        for _ in range(2):
-            self.set_servo(Servos.HIP_RIGHT, 70)
-            self.set_servo(Servos.HIP_LEFT, 110)
-            self.set_servo(Servos.HIP_RIGHT, 110)
-            self.set_servo(Servos.HIP_LEFT, 70)
-        
-        # 2. Knee bends
-        for _ in range(2):
-            self.set_servo(Servos.KNEE_RIGHT, 120)
-            self.set_servo(Servos.KNEE_LEFT, 120)
-            self.set_servo(Servos.KNEE_RIGHT, 90)
-            self.set_servo(Servos.KNEE_LEFT, 90)
-        
-        # 3. Twist and turn
-        for _ in range(2):
-            self.set_servo(Servos.HIP_RIGHT, 60)
-            self.set_servo(Servos.HIP_LEFT, 60)
-            self.set_servo(Servos.HIP_RIGHT, 120)
-            self.set_servo(Servos.HIP_LEFT, 120)
-        
-        # 4. Final pose
-        for servo_index, angle in DEFAULT_POSITIONS.items():
-            self.set_servo(servo_index, angle) 
+        # Dance sequence implementation
+        pass 
