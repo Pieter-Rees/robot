@@ -1,0 +1,8 @@
+include README.md
+include LICENSE
+include wiring.md
+include .pre-commit-config.yaml
+
+recursive-include src/robot *.py
+recursive-include tests *.py
+recursive-include frontend * 
