@@ -54,19 +54,23 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
    cd robot-controller
    ```
 
-2. Install dependencies:
+2. Create and activate a virtual environment (recommended):
 
    ```bash
-   # Using the installation script (recommended)
-   python install.py
-
-   # Or manually
-   pip install -e .
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. Configure your hardware:
+3. Install the package in development mode:
+
+   ```bash
+   # Install with all dependencies
+   pip install -e ".[dev]"
+   ```
+
+4. Configure your hardware:
    - Follow the [hardware setup guide](#hardware-setup)
-   - Run the calibration tool: `python calibration.py`
+   - Run the calibration tool: `python -m robot.calibration`
 
 ## 🛠️ Hardware Setup
 
