@@ -21,6 +21,7 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
   - Live sensor data visualization
   - Pre-programmed movement sequences
   - Responsive design for all devices
+  - Bluetooth connectivity support
 
 - **Advanced Sensors**
 
@@ -70,6 +71,67 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
 
 ## 🛠️ Hardware Setup
 
+### Bluetooth Configuration
+
+#### Automatic Bluetooth Setup (Recommended)
+
+To enable Bluetooth automatically on boot:
+
+1. Install the Bluetooth service:
+
+   ```bash
+   # Navigate to the project directory
+   cd /path/to/robot-controller
+
+   # Copy the service file to systemd directory
+   sudo cp robot-bluetooth.service /etc/systemd/system/
+
+   # Reload systemd to recognize the new service
+   sudo systemctl daemon-reload
+
+   # Enable and start the service
+   sudo systemctl enable robot-bluetooth.service
+   sudo systemctl start robot-bluetooth.service
+   ```
+
+2. Verify the service is running:
+
+   ```bash
+   sudo systemctl status robot-bluetooth.service
+   ```
+
+3. Check Bluetooth status:
+
+   ```bash
+   hciconfig
+   ```
+
+   You should see `hci0` with `UP RUNNING PSCAN ISCAN` in the output.
+
+4. Make your device discoverable:
+
+   ```bash
+   sudo bluetoothctl
+   [bluetooth]# power on
+   [bluetooth]# discoverable on
+   [bluetooth]# pairable on
+   [bluetooth]# exit
+   ```
+
+#### Manual Bluetooth Setup
+
+If you prefer to enable Bluetooth manually:
+
+```bash
+# Enable and start Bluetooth service
+sudo systemctl enable bluetooth
+sudo systemctl start bluetooth
+
+# Enable the Bluetooth interface
+sudo hciconfig hci0 up
+sudo hciconfig hci0 piscan
+```
+
 ### Servo Connections
 
 | Channel | Component      | Description                   |
@@ -117,11 +179,48 @@ python start.py
 
 This launches the main menu with options to:
 
-1. Start Web Interface
+1. Start Web Interface (WiFi & Bluetooth)
 2. Start Command Line Controller
 3. Run Calibration Tool
 4. Check and Install Dependencies
 5. Exit
+
+### Bluetooth Setup
+
+The robot can be controlled via Bluetooth in addition to WiFi. To use Bluetooth:
+
+1. Enable Bluetooth on boot (recommended):
+
+   ```bash
+   # Copy the service file to systemd directory
+   sudo cp robot-bluetooth.service /etc/systemd/system/
+
+   # Reload systemd to recognize the new service
+   sudo systemctl daemon-reload
+
+   # Enable and start the service
+   sudo systemctl enable robot-bluetooth.service
+   sudo systemctl start robot-bluetooth.service
+   ```
+
+   Or manually enable Bluetooth:
+
+   ```bash
+   sudo systemctl enable bluetooth
+   sudo systemctl start bluetooth
+   ```
+
+2. Start the web interface from the main menu (option 1)
+
+3. Pair your device with the Raspberry Pi:
+
+   - Look for "RobotWebServer" in your device's Bluetooth settings
+   - Pair with the robot
+   - Once connected, you'll receive the web interface URL
+
+4. Access the web interface through the provided URL
+
+The web interface is accessible both over WiFi (using the IP address) and Bluetooth, providing flexible control options.
 
 ### Basic Robot Control
 
@@ -160,92 +259,13 @@ Access the web interface at `http://localhost:5000` after starting the web serve
 
 #### API Endpoints
 
-| Endpoint             | Method | Description                 |
-| -------------------- | ------ | --------------------------- |
-| `/api/init`          | POST   | Initialize the robot        |
-| `/api/servo`         | POST   | Move a specific servo       |
-| `/api/servo/<index>` | GET    | Get servo position          |
-| `/api/stand`         | POST   | Make robot stand up         |
-| `/api/walk`          | POST   | Make robot walk forward     |
-| `/api/shutdown`      | POST   | Shutdown the robot          |
-| `/api/robot_info`    | GET    | Get robot state information |
-| `/api/eyes`          | GET    | Get eye sensor data         |
-| `/api/mpu6050`       | GET    | Get motion sensor data      |
+| Endpoint             | Method | Description             |
+| -------------------- | ------ | ----------------------- |
+| `/api/init`          | POST   | Initialize the robot    |
+| `/api/servo`         | POST   | Move a specific servo   |
+| `/api/servo/<index>` | GET    | Get servo position      |
+| `/api/stand`         | POST   | Make robot stand up     |
+| `/api/walk`          | POST   | Make robot walk forward |
+| `/api/shutdown`      | POST   | Shutdown the robot      |
 
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Module Import Errors**
-
-   ```bash
-   # Set PYTHONPATH
-   export PYTHONPATH=$PYTHONPATH:$(pwd)/src
-   ```
-
-2. **Servo Jittering**
-
-   - Check power supply voltage
-   - Ensure proper grounding
-   - Verify servo connections
-
-3. **Sensor Communication Issues**
-   - Verify I2C addresses
-   - Check wiring connections
-   - Ensure proper voltage levels
-
-### Debugging
-
-Enable debug logging:
-
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-### Development Setup
-
-1. Install development dependencies:
-
-   ```bash
-   pip install -e ".[dev]"
-   ```
-
-2. Run tests:
-
-   ```bash
-   python -m pytest tests/
-   ```
-
-3. Check code style:
-   ```bash
-   pre-commit run --all-files
-   ```
-
-## 📚 Documentation
-
-For detailed documentation, visit our [documentation site](https://your-docs-site.com).
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Adafruit for the PCA9685 library
-- Open source robotics community
-- Contributors and maintainers
-
----
-
-Made with ❤️ by the Robot Controller Team
+| `/api/robot_info`

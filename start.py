@@ -148,7 +148,7 @@ def main_menu():
         display_ip()
         
         print("\nSelect an option:")
-        print("1. Start Web Interface")
+        print("1. Start Web Interface (WiFi & Bluetooth)")
         print("2. Start Command Line Controller")
         print("3. Run Calibration Tool")
         print("4. Check and Install Dependencies")
@@ -157,15 +157,24 @@ def main_menu():
         choice = input("\nEnter your choice (1-5): ").strip()
         
         if choice == '1':
-            # Start web interface
+            # Start web interface with Bluetooth support
             clear_screen()
             print("Starting web interface on port 5000...")
             print("Press Ctrl+C to stop and return to menu")
             try:
                 from robot.web.web_server import app
-                app.run(host='0.0.0.0', port=5000)
+                from robot.bluetooth_server import BluetoothWebServer
+                
+                with BluetoothWebServer(app):
+                    print("Web interface and Bluetooth server started")
+                    print("Connect to the robot via Bluetooth to get the web interface URL")
+                    while True:
+                        time.sleep(1)
             except KeyboardInterrupt:
                 print("\nWeb interface stopped")
+                input("Press Enter to continue...")
+            except Exception as e:
+                print(f"Error starting web interface: {e}")
                 input("Press Enter to continue...")
                 
         elif choice == '2':

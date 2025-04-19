@@ -10,6 +10,7 @@ MarkupSafe
 Adafruit-PCA9685
 setuptools
 smbus2
+pybluez
 
 # Development dependencies
 pytest

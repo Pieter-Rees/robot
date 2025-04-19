@@ -1,0 +1,13 @@
+[Unit]
+Description=Robot Bluetooth Service
+After=bluetooth.service
+Requires=bluetooth.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/hciconfig hci0 up
+ExecStart=/usr/bin/hciconfig hci0 piscan
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target 
