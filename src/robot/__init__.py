@@ -10,7 +10,6 @@ __version__ = "0.1.0"
 from .controllers.robot_controller import RobotController
 from .controllers.mock_robot_controller import MockRobotController
 from .controllers.controller_factory import create_controller, is_raspberry_pi
-from .sensors import OT703C86, MPU6050
 from .web.web_server import app as web_app
 from .calibration import run_calibration
 
@@ -19,8 +18,6 @@ __all__ = [
     'MockRobotController',
     'create_controller',
     'is_raspberry_pi',
-    'OT703C86',
-    'MPU6050',
     'web_app',
     'run_calibration',
 ] 

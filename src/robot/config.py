@@ -23,9 +23,7 @@ def get_i2c_config():
                     # Standard RPi configuration
                     return {
                         'default_bus': 1,
-                        'pca9685_address': 0x40,
-                        'ot703c86_address': 0x3C,
-                        'mpu6050_address': 0x68
+                        'pca9685_address': 0x40
                     }
         except:
             pass
@@ -33,30 +31,24 @@ def get_i2c_config():
         # Generic Linux
         return {
             'default_bus': 1,
-            'pca9685_address': 0x40,
-            'ot703c86_address': 0x3C,
-            'mpu6050_address': 0x68
+            'pca9685_address': 0x40
         }
     
     elif system == 'Windows':
         # Windows mock configuration
         return {
             'default_bus': 0,  # Mock value for Windows
-            'pca9685_address': 0x40,
-            'ot703c86_address': 0x3C,
-            'mpu6050_address': 0x68
+            'pca9685_address': 0x40
         }
     
     else:
-        # Other platforms (macOS, etc.)
+        # Default configuration for other platforms
         return {
-            'default_bus': 0,  # Mock value
-            'pca9685_address': 0x40,
-            'ot703c86_address': 0x3C,
-            'mpu6050_address': 0x68
+            'default_bus': 0,
+            'pca9685_address': 0x40
         }
 
-# Export I2C configuration
+# Get the I2C configuration
 I2C_CONFIG = get_i2c_config()
 
 # Servo indices (channels on the PCA9685)
