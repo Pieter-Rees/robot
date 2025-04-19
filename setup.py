@@ -1,4 +1,9 @@
 from setuptools import setup, find_packages
+import io
+
+# Read the README.md file with proper encoding
+with io.open("README.md", encoding="utf-8") as f:
+    long_description = f.read()
 
 setup(
     name="robot-controller",
@@ -21,7 +26,7 @@ setup(
     author="Your Name",
     author_email="your.email@example.com",
     description="A Python-based controller for a humanoid robot using the PCA9685 servo controller",
-    long_description=open("README.md").read(),
+    long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/yourusername/robot-controller",
     classifiers=[

@@ -198,6 +198,9 @@ def main_menu():
             print("Follow the on-screen instructions to calibrate your servos")
             try:
                 if is_raspberry_pi():
+                    import sys
+                    from pathlib import Path
+                    sys.path.insert(0, str(Path(__file__).parent / "src"))
                     from robot.calibration import run_calibration
                     run_calibration()
                 else:
