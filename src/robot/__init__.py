@@ -12,6 +12,7 @@ from .controllers.mock_robot_controller import MockRobotController
 from .controllers.controller_factory import create_controller, is_raspberry_pi
 from .sensors import OT703C86, MPU6050
 from .web.web_server import app as web_app
+from .calibration import run_calibration
 
 __all__ = [
     'RobotController',
@@ -21,4 +22,5 @@ __all__ = [
     'OT703C86',
     'MPU6050',
     'web_app',
+    'run_calibration',
 ] 
