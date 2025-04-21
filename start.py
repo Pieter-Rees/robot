@@ -7,14 +7,12 @@ This script provides a simple way to start either the robot controller or web in
 
 import argparse
 import sys
-from robot import create_controller, web_app
+from robot import create_controller, web_app, I2C_CONFIG
 
 def main():
     parser = argparse.ArgumentParser(description='Robot Controller Starter')
     parser.add_argument('--mode', choices=['controller', 'web'], default='controller',
                       help='Mode to start the robot in (default: controller)')
-    parser.add_argument('--mock', action='store_true',
-                      help='Use mock controller instead of real hardware')
     parser.add_argument('--host', default='0.0.0.0',
                       help='Host to run the web server on (default: 0.0.0.0)')
     parser.add_argument('--port', type=int, default=5000,
@@ -24,8 +22,8 @@ def main():
     
     if args.mode == 'controller':
         try:
-            controller = create_controller(mock=args.mock)
-            print(f"Starting {'mock ' if args.mock else ''}robot controller...")
+            controller = create_controller(I2C_CONFIG)
+            print("Starting robot controller...")
             # Add your controller initialization and main loop here
             # For example:
             # controller.initialize()
