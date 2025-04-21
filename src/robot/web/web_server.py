@@ -8,9 +8,9 @@ import threading
 import time
 import json
 import os
-from ..controllers.mock_robot_controller import MockRobotController
-from ..controllers.robot_controller import RobotController
-from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
+from robot.controllers.mock_robot_controller import MockRobotController
+from robot.controllers.robot_controller import RobotController
+from robot.config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
 
 def is_raspberry_pi():
     """

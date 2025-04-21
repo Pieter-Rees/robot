@@ -32,10 +32,10 @@ except ImportError:
         sys.exit(1)
 
 from ..sensors import OT703C86, MPU6050
-from ..base_controller import BaseController
+from robot.base_controller import BaseRobotController
 from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS, I2C_CONFIG
 
-class RobotController(BaseController):
+class RobotController(BaseRobotController):
     """
     Concrete implementation of a robot controller.
     This class handles the actual robot hardware control.
