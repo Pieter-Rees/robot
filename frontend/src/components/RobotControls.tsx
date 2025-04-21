@@ -10,6 +10,14 @@ import {
 } from '@mui/material'
 import axios from 'axios'
 
+// Configure axios to use the correct base URL
+const api = axios.create({
+  baseURL: '/api',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
+
 interface ServoInfo {
   position: number
   min: number
@@ -26,7 +34,7 @@ export default function RobotControls() {
 
   const fetchRobotInfo = async () => {
     try {
-      const response = await axios.get('/api/robot_info')
+      const response = await api.get('/robot_info')
       if (response.data.status === 'success') {
         setServos(response.data.servos)
         setInitialized(response.data.initialized)
@@ -38,7 +46,7 @@ export default function RobotControls() {
 
   const handleServoChange = async (servoIndex: number, value: number) => {
     try {
-      await axios.post('/api/servo', {
+      await api.post('/servo', {
         servo: servoIndex,
         angle: value,
         speed: 0.01
@@ -54,7 +62,7 @@ export default function RobotControls() {
 
   const handleAction = async (action: string) => {
     try {
-      await axios.post(`/api/${action}`)
+      await api.post(`/${action}`)
       if (action === 'init') {
         setInitialized(true)
       } else if (action === 'shutdown') {
