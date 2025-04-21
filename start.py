@@ -7,7 +7,8 @@ This script provides a simple way to start either the robot controller or web in
 
 import argparse
 import sys
-from robot import create_controller, web_app
+from robot.controllers import create_controller
+from robot import web_app
 from robot.config import I2C_CONFIG
 
 def main():
