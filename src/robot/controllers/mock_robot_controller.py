@@ -14,9 +14,12 @@ class MockRobotController(BaseRobotController):
     Mock implementation of the robot controller for testing and development.
     Simulates the behavior of the real controller without requiring hardware.
     """
-    def __init__(self):
+    def __init__(self, config=None):
         super().__init__()
         print("Initializing Mock Robot Controller (no hardware required)")
+        
+        # Store config for reference
+        self.config = config
         
         # Mock sensor data
         self.mock_distance = 50.0  # Initial distance in cm

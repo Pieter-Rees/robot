@@ -41,25 +41,29 @@ class RobotController(BaseRobotController):
     This class handles the actual robot hardware control.
     """
     
-    def __init__(self):
+    def __init__(self, config=None):
         """Initialize the robot controller."""
+        super().__init__()
         self.initialized = False
         self.current_positions = {}  # Initialize current positions dictionary
         
-        print("Initializing RobotController...")
-        print(f"I2C_CONFIG: {I2C_CONFIG}")
+        # Use provided config or fall back to I2C_CONFIG
+        self.config = config or I2C_CONFIG
         
-        # Initialize the PCA9685 using I2C_CONFIG
+        print("Initializing RobotController...")
+        print(f"I2C_CONFIG: {self.config}")
+        
+        # Initialize the PCA9685 using config
         try:
-            print(f"Attempting to initialize PCA9685 on bus {I2C_CONFIG['default_bus']}, address {hex(I2C_CONFIG['pca9685_address'])}")
-            self.pwm = PCA9685(address=I2C_CONFIG['pca9685_address'], busnum=I2C_CONFIG['default_bus'])
+            print(f"Attempting to initialize PCA9685 on bus {self.config['default_bus']}, address {hex(self.config['pca9685_address'])}")
+            self.pwm = PCA9685(address=self.config['pca9685_address'], busnum=self.config['default_bus'])
             self.pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
             print("PCA9685 initialized successfully")
         except Exception as e:
             print(f"Warning: Failed to initialize PCA9685: {str(e)}")
             if platform.system() == 'Windows':
                 print("Using mock PCA9685 implementation on Windows")
-                self.pwm = MockPCA9685(address=I2C_CONFIG['pca9685_address'], busnum=I2C_CONFIG['default_bus'])
+                self.pwm = MockPCA9685(address=self.config['pca9685_address'], busnum=self.config['default_bus'])
                 self.pwm.set_pwm_freq(50)
             else:
                 print("Hardware control will not be available")
