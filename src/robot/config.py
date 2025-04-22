@@ -3,6 +3,9 @@ Configuration file for the humanoid robot.
 Defines servo indices, limits, and default positions.
 """
 import platform
+import json
+import os
+from typing import Dict
 
 # Platform-specific I2C configuration
 def get_i2c_config():
@@ -102,4 +105,28 @@ SERVO_LIMITS = {
     Servos.ANKLE_LEFT: (60, 120),
     Servos.WRIST_RIGHT: (30, 150),
     Servos.WRIST_LEFT: (30, 150)
-} 
+}
+
+def load_calibrated_positions() -> Dict[int, int]:
+    """
+    Load calibrated positions from the JSON file.
+    Returns a dictionary mapping servo indices to their calibrated positions.
+    """
+    config_file = os.path.join(os.path.dirname(__file__), 'config', 'servo_calibration.json')
+    try:
+        with open(config_file, 'r') as f:
+            data = json.load(f)
+            named_positions = data['calibrated_positions']
+            
+            # Convert names back to indices
+            calibrated_positions = {}
+            for servo_name, servo_index in vars(Servos).items():
+                if not servo_name.startswith('_') and servo_name in named_positions:
+                    calibrated_positions[servo_index] = named_positions[servo_name]
+            
+            return calibrated_positions
+    except (FileNotFoundError, json.JSONDecodeError, KeyError):
+        return DEFAULT_POSITIONS.copy()
+
+# Load calibrated positions
+CALIBRATED_POSITIONS = load_calibrated_positions() 

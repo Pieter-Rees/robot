@@ -3,7 +3,7 @@ Abstract base class for robot controllers.
 Defines the interface that all robot controllers must implement.
 """
 from abc import ABC, abstractmethod
-from robot.config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
+from robot.config import Servos, CALIBRATED_POSITIONS, SERVO_LIMITS
 
 class BaseRobotController(ABC):
     """
@@ -12,7 +12,7 @@ class BaseRobotController(ABC):
     """
     
     def __init__(self):
-        self.current_positions = DEFAULT_POSITIONS.copy()
+        self.current_positions = CALIBRATED_POSITIONS.copy()
     
     @abstractmethod
     def set_servo(self, servo_index, angle, speed=0.01):
@@ -41,7 +41,7 @@ class BaseRobotController(ABC):
         Execute sequence to make the robot stand up from a sitting/lying position.
         """
         # Center all servos
-        for servo_index, angle in DEFAULT_POSITIONS.items():
+        for servo_index, angle in CALIBRATED_POSITIONS.items():
             self.set_servo(servo_index, angle)
         
         # Bend knees
@@ -100,7 +100,7 @@ class BaseRobotController(ABC):
         The dance consists of a series of movements that make the robot appear to dance.
         """
         # Initial pose
-        for servo_index, angle in DEFAULT_POSITIONS.items():
+        for servo_index, angle in CALIBRATED_POSITIONS.items():
             self.set_servo(servo_index, angle)
         
         # Dance sequence
@@ -126,5 +126,5 @@ class BaseRobotController(ABC):
             self.set_servo(Servos.HIP_LEFT, 120)
         
         # 4. Final pose
-        for servo_index, angle in DEFAULT_POSITIONS.items():
+        for servo_index, angle in CALIBRATED_POSITIONS.items():
             self.set_servo(servo_index, angle) 

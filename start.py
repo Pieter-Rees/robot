@@ -18,6 +18,7 @@ import subprocess
 import sys
 import time
 from typing import List, Optional, Set
+import json
 
 # Add src and parent directories to Python path in one go
 PATHS_TO_ADD = [
@@ -165,10 +166,14 @@ def main_menu() -> None:
             'action': lambda: run_calibration_tool()
         },
         '4': {
+            'title': 'Load Calibration from File',
+            'action': lambda: load_calibration_from_file()
+        },
+        '5': {
             'title': 'Check and Install Dependencies',
             'action': lambda: handle_dependencies()
         },
-        '5': {
+        '6': {
             'title': 'Exit',
             'action': lambda: exit_program()
         }
@@ -182,7 +187,7 @@ def main_menu() -> None:
         for key, option in menu_options.items():
             print(f"{key}. {option['title']}")
         
-        choice = input("\nEnter your choice (1-5): ").strip()
+        choice = input("\nEnter your choice (1-6): ").strip()
         
         if choice in menu_options:
             menu_options[choice]['action']()
@@ -237,6 +242,78 @@ def run_calibration_tool() -> None:
             print("Please run this on your actual robot hardware")
     except KeyboardInterrupt:
         print("\nCalibration tool stopped")
+    input("Press Enter to continue...")
+
+def load_calibration_from_file() -> None:
+    """Load calibration data from a JSON file."""
+    clear_screen()
+    print("Loading calibration from file...")
+    
+    try:
+        if not is_raspberry_pi():
+            print("This feature is only available on Raspberry Pi")
+            print("Please run this on your actual robot hardware")
+            input("Press Enter to continue...")
+            return
+            
+        from robot.calibration import load_calibration, save_calibration
+        from robot.controllers import create_controller
+        
+        # Get the JSON file path
+        print("\nEnter the path to the calibration JSON file")
+        print("(Press Enter to use 'servo_calibration.json' in current directory)")
+        file_path = input("File path: ").strip()
+        
+        if not file_path:
+            file_path = 'servo_calibration.json'
+        
+        if not os.path.exists(file_path):
+            print(f"Error: File '{file_path}' not found")
+            input("Press Enter to continue...")
+            return
+        
+        # Load the calibration data
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+                if 'calibrated_positions' not in data:
+                    print("Error: Invalid calibration file format")
+                    input("Press Enter to continue...")
+                    return
+                
+                # Convert named positions to indices
+                from robot.config import Servos
+                calibrated_positions = {}
+                for servo_name, position in data['calibrated_positions'].items():
+                    if hasattr(Servos, servo_name):
+                        servo_index = getattr(Servos, servo_name)
+                        calibrated_positions[servo_index] = position
+                
+                # Save to system configuration
+                save_calibration(calibrated_positions)
+                print(f"\nCalibration loaded successfully from: {file_path}")
+                
+                # Test the calibration
+                if input("\nWould you like to test the loaded calibration? (y/n): ").lower() == 'y':
+                    controller = create_controller()
+                    controller.initialize_robot()
+                    try:
+                        for servo_index, position in calibrated_positions.items():
+                            print(f"Moving servo {servo_index} to position {position}°")
+                            controller.set_servo(servo_index, position)
+                            time.sleep(1)
+                    finally:
+                        controller.cleanup()
+                
+        except json.JSONDecodeError:
+            print("Error: Invalid JSON file")
+        except Exception as e:
+            print(f"Error loading calibration: {e}")
+            
+    except ImportError as e:
+        print(f"Error: {e}")
+        print("Make sure all dependencies are installed")
+    
     input("Press Enter to continue...")
 
 def handle_dependencies() -> None:
