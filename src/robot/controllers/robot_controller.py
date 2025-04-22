@@ -111,12 +111,25 @@ class RobotController(BaseRobotController):
             angle (float): Target angle in degrees
             speed (float): Time delay between angle increments (lower = faster)
         """
+        # Validate inputs
+        if servo_index is None:
+            print("Error: servo_index cannot be None")
+            return
+            
+        if angle is None:
+            print("Error: angle cannot be None")
+            return
+            
         # Apply safety limits
         min_angle, max_angle = SERVO_LIMITS.get(servo_index, (0, 180))
         safe_angle = max(min_angle, min(max_angle, angle))
         
-        # Get current position
+        # Get current position with validation
         current_angle = self.current_positions.get(servo_index, 90)
+        if current_angle is None:
+            print(f"Warning: No current position found for servo {servo_index}, using default 90°")
+            current_angle = 90
+            self.current_positions[servo_index] = current_angle
         
         # Check if PWM controller is available
         if self.pwm is None:
@@ -129,11 +142,17 @@ class RobotController(BaseRobotController):
         end = int(safe_angle) + step
         
         # Move to target position
-        for a in range(start, end, step):
-            pwm_value = self._angle_to_pwm(a)
-            self.pwm.set_pwm(servo_index, 0, pwm_value)
-            self.current_positions[servo_index] = a
-            time.sleep(speed)
+        try:
+            for a in range(start, end, step):
+                pwm_value = self._angle_to_pwm(a)
+                if pwm_value is None:
+                    print(f"Error: Failed to convert angle {a} to PWM value")
+                    continue
+                self.pwm.set_pwm(servo_index, 0, pwm_value)
+                self.current_positions[servo_index] = a
+                time.sleep(speed)
+        except Exception as e:
+            print(f"Error moving servo {servo_index}: {str(e)}")
     
     def dance(self):
         """

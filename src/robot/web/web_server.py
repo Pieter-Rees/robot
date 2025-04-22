@@ -116,17 +116,48 @@ def move_servo():
     
     try:
         data = request.get_json()
-        servo_index = int(data.get('servo'))  # Convert to integer
-        angle = float(data.get('angle'))  # Convert to float
+        if not data:
+            return jsonify({"status": "error", "message": "No data provided"}), 400
+            
+        # Get and validate servo index
+        servo_index = data.get('servo')
+        if servo_index is None:
+            return jsonify({"status": "error", "message": "Missing servo index"}), 400
+        try:
+            servo_index = int(servo_index)
+        except (ValueError, TypeError):
+            return jsonify({"status": "error", "message": "Invalid servo index"}), 400
+            
+        # Get and validate angle/position (support both parameter names)
+        angle = data.get('angle') or data.get('position')
+        if angle is None:
+            return jsonify({"status": "error", "message": "Missing angle/position"}), 400
+        try:
+            angle = float(angle)
+        except (ValueError, TypeError):
+            return jsonify({"status": "error", "message": "Invalid angle/position"}), 400
+            
+        # Get and validate speed (optional)
         speed = data.get('speed', 0.01)
+        try:
+            speed = float(speed)
+        except (ValueError, TypeError):
+            speed = 0.01  # Use default if invalid
         
-        if servo_index is None or angle is None:
-            return jsonify({"status": "error", "message": "Missing servo or angle"}), 400
+        # Validate servo index exists
+        if servo_index not in DEFAULT_POSITIONS:
+            return jsonify({"status": "error", "message": f"Invalid servo index: {servo_index}"}), 400
+            
+        # Validate angle is within limits
+        min_angle, max_angle = SERVO_LIMITS.get(servo_index, (0, 180))
+        if not min_angle <= angle <= max_angle:
+            return jsonify({
+                "status": "error", 
+                "message": f"Angle {angle} is outside valid range [{min_angle}, {max_angle}]"
+            }), 400
         
         safe_robot_action(robot.set_servo, servo_index, angle, speed)
         return jsonify({"status": "success"})
-    except ValueError:
-        return jsonify({"status": "error", "message": "Invalid servo index or angle"}), 400
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
