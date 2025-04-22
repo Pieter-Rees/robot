@@ -16,7 +16,7 @@ API Endpoints:
 - POST /api/dance: Make robot dance
 - GET /api/calibration: Get calibration data
 - POST /api/calibration: Save calibration data
-- POST /api/calibration/servo/<id>: Calibrate specific servo
+- POST /api/calibration/servo/<id>: Calibrate specific servo 
 """
 from flask import Flask, render_template, request, jsonify, send_from_directory, Response
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -113,7 +113,7 @@ def after_request(response):
     return response
 
 # Add connection pooling
-from werkzeug.contrib.fixers import ProxyFix
+from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 # Create robot controller instance based on platform

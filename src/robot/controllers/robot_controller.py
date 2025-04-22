@@ -98,6 +98,10 @@ class RobotController(BaseRobotController):
         }
         
         # Initialize the PCA9685 with error handling
+        self.pwm = None
+        self.using_mock_pwm = False
+        self.initialization_error = None
+        
         try:
             i2c_config = config.i2c
             self.pwm = PCA9685(
@@ -106,21 +110,26 @@ class RobotController(BaseRobotController):
             )
             self.pwm.set_pwm_freq(50)
         except Exception as e:
-            if platform.system() == 'Windows':
+            self.initialization_error = str(e)
+            if platform.system() == 'Windows' or "adafruit" in str(e).lower():
+                print(f"Warning: Using mock PCA9685 controller: {str(e)}")
                 self.pwm = MockPCA9685(
                     address=i2c_config['pca9685_address'],
                     busnum=i2c_config['default_bus']
                 )
                 self.pwm.set_pwm_freq(50)
+                self.using_mock_pwm = True
             else:
                 print(f"Warning: Failed to initialize PCA9685: {str(e)}")
-                self.pwm = None
     
     @contextmanager
     def _servo_operation(self, servo_id: int):
         """Context manager for safe servo operations."""
         if not self.initialized:
-            raise RobotControllerError("Robot not initialized")
+            if self.initialization_error:
+                raise RobotControllerError(f"Robot not initialized: {self.initialization_error}")
+            else:
+                raise RobotControllerError("Robot not initialized. Call initialize_robot() first.")
         
         if servo_id not in self._servo_states:
             raise ServoError(f"Invalid servo ID: {servo_id}")
@@ -177,9 +186,31 @@ class RobotController(BaseRobotController):
         # Validate all servos first
         validated_angles = {}
         for servo_id, angle in servo_angles.items():
-            if servo_id not in self._servo_states:
-                raise ServoError(f"Invalid servo ID: {servo_id}")
-            validated_angles[servo_id] = self._validate_servo_params(servo_id, angle)
+            try:
+                if servo_id not in self._servo_states:
+                    raise ServoError(f"Invalid servo ID: {servo_id}")
+                validated_angles[servo_id] = self._validate_servo_params(servo_id, angle)
+            except Exception as e:
+                print(f"Warning: Skipping servo {servo_id}: {str(e)}")
+                continue
+        
+        if not validated_angles:
+            raise ServoError("No valid servo angles provided")
+        
+        # In mock mode, simplify the operations to avoid thread complexity
+        if self.using_mock_pwm:
+            for servo_id, angle in validated_angles.items():
+                try:
+                    pwm_value = self._angle_to_pwm(angle)
+                    with self._pwm_lock:
+                        if self.pwm is not None:
+                            self.pwm.set_pwm(servo_id, 0, pwm_value)
+                    with self._state_lock:
+                        self._servo_states[servo_id].position = angle
+                    time.sleep(speed)
+                except Exception as e:
+                    print(f"Warning: Error setting servo {servo_id}: {str(e)}")
+            return
         
         # Group servos by movement range for optimized movement
         groups: Dict[Tuple[int, int], Set[int]] = {}
@@ -207,7 +238,8 @@ class RobotController(BaseRobotController):
         for future in as_completed(futures):
             try:
                 future.result(timeout=5.0)  # 5 second timeout per group
-            except:
+            except Exception as e:
+                print(f"Warning: Error during servo movement: {str(e)}")
                 continue
 
     def _move_servo_group(self, servo_ids: Set[int], start: int, end: int, speed: float) -> None:
@@ -239,6 +271,13 @@ class RobotController(BaseRobotController):
             return
         
         try:
+            # Check if PWM controller is available
+            if not self.pwm:
+                if self.initialization_error:
+                    raise RobotControllerError(f"Failed to initialize hardware: {self.initialization_error}")
+                else:
+                    raise RobotControllerError("PWM controller not initialized")
+            
             # Get all default positions in parallel
             futures = []
             for servo_id in self._servo_states:
@@ -253,9 +292,13 @@ class RobotController(BaseRobotController):
             for servo_id, future in futures:
                 try:
                     default_positions[servo_id] = future.result()
-                except:
+                except Exception as e:
+                    print(f"Warning: Could not get calibrated position for servo {servo_id}: {str(e)}")
                     continue
             
+            if not default_positions:
+                raise RobotControllerError("No valid servo positions found")
+                
             # Move all servos to default positions in parallel
             self.set_servo_batch(default_positions, speed=0.02)
             self.initialized = True

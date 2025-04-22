@@ -83,7 +83,7 @@ class Config:
         """Load calibrated positions from configuration files."""
         config_paths = [
             Path('/etc/robot/servo_calibration.json'),
-            Path.home() / '.robot' / 'servo_calibration.json'),
+            Path.home() / '.robot' / 'servo_calibration.json',
             Path(__file__).parent / 'config' / 'servo_calibration.json'
         ]
         
