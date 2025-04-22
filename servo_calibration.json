@@ -1,18 +1,18 @@
 {
     "calibrated_positions": {
         "HEAD": 90,
-        "SHOULDER_RIGHT": 90,
+        "SHOULDER_RIGHT": 140,
         "SHOULDER_LEFT": 90,
-        "ELBOW_RIGHT": 90,
-        "ELBOW_LEFT": 90,
-        "HIP_RIGHT": 90,
-        "HIP_LEFT": 90,
-        "KNEE_RIGHT": 90,
-        "KNEE_LEFT": 90,
+        "ELBOW_RIGHT": 100,
+        "ELBOW_LEFT": 95,
+        "HIP_RIGHT": 120,
+        "HIP_LEFT": 120,
+        "KNEE_RIGHT": 95,
+        "KNEE_LEFT": 85,
         "ANKLE_RIGHT": 90,
         "ANKLE_LEFT": 90,
         "WRIST_RIGHT": 90,
         "WRIST_LEFT": 90
     },
-    "calibration_date": "2025-04-22 19:49:24"
+    "calibration_date": "2025-04-22 20:26:10"
 }

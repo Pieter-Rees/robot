@@ -33,6 +33,9 @@ for path in PATHS_TO_ADD:
 # Cache for Raspberry Pi detection
 _is_raspberry_pi: Optional[bool] = None
 
+# Add this near the top with other global variables
+_calibration: Optional[dict] = None
+
 def is_raspberry_pi() -> bool:
     """
     Check if the code is running on a Raspberry Pi.
@@ -147,11 +150,29 @@ def display_ip() -> None:
         print("Could not determine IP address.")
     print("-" * 60)
 
+def load_calibration() -> None:
+    """Load calibration data from servo_calibration.json file."""
+    global _calibration
+    try:
+        with open('servo_calibration.json', 'r') as f:
+            _calibration = json.load(f)
+            print("Calibration loaded successfully!")
+            return _calibration
+    except FileNotFoundError:
+        print("Warning: servo_calibration.json not found. Using default calibration.")
+        return None
+    except json.JSONDecodeError:
+        print("Warning: Invalid calibration file format. Using default calibration.")
+        return None
+
 def main_menu() -> None:
     """
     Display the main menu and handle user input for program selection.
     Uses a dictionary for menu options to improve maintainability and performance.
     """
+    # Load calibration at startup
+    load_calibration()
+    
     menu_options = {
         '1': {
             'title': 'Start Web Interface',
@@ -202,6 +223,9 @@ def start_web_interface() -> None:
     print("Press Ctrl+C to stop and return to menu")
     try:
         from robot.web.web_server import app
+        # Pass calibration data to the web server
+        if _calibration:
+            app.config['CALIBRATION'] = _calibration
         app.run(host='0.0.0.0', port=5000)
     except KeyboardInterrupt:
         print("\nWeb interface stopped")
@@ -215,6 +239,9 @@ def start_command_line_controller() -> None:
     try:
         from robot.controllers import create_controller
         controller = create_controller()
+        # Pass calibration data to controller if available
+        if _calibration:
+            controller.current_positions = _calibration.get('calibrated_positions', {})
         controller.initialize_robot()
         while True:
             time.sleep(1)
