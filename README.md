@@ -1,8 +1,8 @@
 # 🤖 Robot Controller
 
-[![Python Version](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](#documentation)
+[![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](docs/)
 
 A comprehensive Python-based controller for a humanoid robot using the PCA9685 servo controller. This project provides both hardware control and a modern web interface for robot operation, making it perfect for robotics enthusiasts, educators, and developers.
 
@@ -31,7 +31,7 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
 
 ### Prerequisites
 
-- Python 3.6 or higher
+- Python 3.8 or higher
 - Raspberry Pi (recommended) or compatible hardware
 - Adafruit PCA9685 board
 - Standard servos (compatible with 50Hz PWM)
@@ -45,23 +45,52 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
    cd robot-controller
    ```
 
-2. Create and activate a virtual environment (recommended):
+2. Run the installation script:
 
    ```bash
+   ./install.sh
+   ```
+
+   This will:
+   - Create and activate a virtual environment
+   - Install all required dependencies
+   - Set up pre-commit hooks
+   - Create necessary configuration files
+
+   Alternatively, you can install manually:
+
+   ```bash
+   # Create and activate virtual environment
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
 
-3. Install the package in development mode:
-
-   ```bash
-   # Install with all dependencies
+   # Install the package with all dependencies
    pip install -e ".[dev]"
+
+   # Set up pre-commit hooks
+   pre-commit install
    ```
 
-4. Configure your hardware:
+3. Configure your hardware:
    - Follow the [hardware setup guide](#hardware-setup)
    - Run the calibration tool: `python -m robot.calibration`
+   - The calibration settings will be saved in `servo_calibration.json`
+
+## 🏗️ Project Structure
+
+```
+robot-controller/
+├── src/                    # Source code
+├── docs/                   # Documentation
+├── venv/                   # Virtual environment
+├── servo_calibration.json  # Servo calibration settings
+├── start.py               # Main entry point
+├── install.sh             # Installation script
+├── pyproject.toml         # Project configuration
+├── setup.py               # Package setup
+├── MANIFEST.in            # Package manifest
+└── .pre-commit-config.yaml # Pre-commit hooks
+```
 
 ## 🛠️ Hardware Setup
 
@@ -203,7 +232,7 @@ We welcome contributions! Please follow these steps:
 
 ## 📚 Documentation
 
-For detailed documentation, visit our [documentation site](https://your-docs-site.com).
+For detailed documentation, visit the [docs](docs/) directory in this repository.
 
 ## 📄 License
 
