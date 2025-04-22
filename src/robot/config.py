@@ -129,4 +129,40 @@ def load_calibrated_positions() -> Dict[int, int]:
         return DEFAULT_POSITIONS.copy()
 
 # Load calibrated positions
-CALIBRATED_POSITIONS = load_calibrated_positions() 
+CALIBRATED_POSITIONS = load_calibrated_positions()
+
+class Config:
+    """Configuration class for the robot."""
+    def __init__(self):
+        self.i2c_config = I2C_CONFIG
+        self.default_positions = DEFAULT_POSITIONS
+        self.servo_limits = SERVO_LIMITS
+        self.calibrated_positions = CALIBRATED_POSITIONS
+
+    def get_servo_config(self, servo_id: int) -> dict:
+        """
+        Get configuration for a specific servo.
+        
+        Args:
+            servo_id: The ID of the servo
+            
+        Returns:
+            dict: Configuration including min_angle, max_angle, and default position
+            
+        Raises:
+            ValueError: If servo_id is invalid
+        """
+        if servo_id not in self.servo_limits:
+            raise ValueError(f"Invalid servo ID: {servo_id}")
+            
+        min_angle, max_angle = self.servo_limits[servo_id]
+        return {
+            'min_angle': min_angle,
+            'max_angle': max_angle,
+            'default_position': self.default_positions[servo_id],
+            'calibrated_position': self.calibrated_positions.get(servo_id, 
+                                                              self.default_positions[servo_id])
+        }
+
+# Create global config instance
+config = Config() 
