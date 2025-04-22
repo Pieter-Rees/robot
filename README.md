@@ -1,8 +1,8 @@
 # 🤖 Robot Controller
 
-[![Python Version](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](#documentation)
+[![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](docs/)
 
 A comprehensive Python-based controller for a humanoid robot using the PCA9685 servo controller. This project provides both hardware control and a modern web interface for robot operation, making it perfect for robotics enthusiasts, educators, and developers.
 
@@ -18,15 +18,8 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
 - **Modern Web Interface**
 
   - Real-time servo control with intuitive sliders
-  - Live sensor data visualization
   - Pre-programmed movement sequences
   - Responsive design for all devices
-
-- **Advanced Sensors**
-
-  - OT703-C86 vision sensor for environment awareness
-  - MPU-6050 motion sensor for balance and orientation
-  - Real-time data monitoring and logging
 
 - **Development Tools**
   - Mock controller for testing without hardware
@@ -38,12 +31,10 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
 
 ### Prerequisites
 
-- Python 3.6 or higher
+- Python 3.8 or higher
 - Raspberry Pi (recommended) or compatible hardware
 - Adafruit PCA9685 board
 - Standard servos (compatible with 50Hz PWM)
-- OT703-C86 sensor (for vision/eyes)
-- MPU-6050 sensor (for motion tracking)
 
 ### Installation
 
@@ -54,19 +45,52 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
    cd robot-controller
    ```
 
-2. Install dependencies:
+2. Run the installation script:
 
    ```bash
-   # Using the installation script (recommended)
-   python install.py
+   ./install.sh
+   ```
 
-   # Or manually
-   pip install -e .
+   This will:
+   - Create and activate a virtual environment
+   - Install all required dependencies
+   - Set up pre-commit hooks
+   - Create necessary configuration files
+
+   Alternatively, you can install manually:
+
+   ```bash
+   # Create and activate virtual environment
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+   # Install the package with all dependencies
+   pip install -e ".[dev]"
+
+   # Set up pre-commit hooks
+   pre-commit install
    ```
 
 3. Configure your hardware:
    - Follow the [hardware setup guide](#hardware-setup)
-   - Run the calibration tool: `python calibration.py`
+   - Run the calibration tool: `python -m robot.calibration`
+   - The calibration settings will be saved in `servo_calibration.json`
+
+## 🏗️ Project Structure
+
+```
+robot-controller/
+├── src/                    # Source code
+├── docs/                   # Documentation
+├── venv/                   # Virtual environment
+├── servo_calibration.json  # Servo calibration settings
+├── start.py               # Main entry point
+├── install.sh             # Installation script
+├── pyproject.toml         # Project configuration
+├── setup.py               # Package setup
+├── MANIFEST.in            # Package manifest
+└── .pre-commit-config.yaml # Pre-commit hooks
+```
 
 ## 🛠️ Hardware Setup
 
@@ -87,25 +111,6 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
 | 10      | Left Ankle     | Controls left foot movement   |
 | 11      | Right Wrist    | Controls right hand movement  |
 | 12      | Left Wrist     | Controls left hand movement   |
-
-### Sensor Configuration
-
-#### OT703-C86 (Eye Sensor)
-
-- I2C Address: 0x3C
-- Features:
-  - Distance measurement (0-200cm)
-  - Ambient light sensing
-  - High accuracy and reliability
-
-#### MPU-6050 (Motion Sensor)
-
-- I2C Address: 0x68
-- Features:
-  - 3-axis accelerometer (±2g range)
-  - 3-axis gyroscope (±250°/s range)
-  - Temperature sensor
-  - Digital Motion Processor
 
 ## 💻 Usage
 
@@ -154,7 +159,6 @@ Access the web interface at `http://localhost:5000` after starting the web serve
 
 - Real-time servo control with sliders
 - Pre-programmed movements
-- Sensor data monitoring
 - Robot status display
 - Movement sequence programming
 
@@ -169,8 +173,7 @@ Access the web interface at `http://localhost:5000` after starting the web serve
 | `/api/walk`          | POST   | Make robot walk forward     |
 | `/api/shutdown`      | POST   | Shutdown the robot          |
 | `/api/robot_info`    | GET    | Get robot state information |
-| `/api/eyes`          | GET    | Get eye sensor data         |
-| `/api/mpu6050`       | GET    | Get motion sensor data      |
+| `/api/dance`         | POST   | Start dance routine         |
 
 ## 🔧 Troubleshooting
 
@@ -188,11 +191,6 @@ Access the web interface at `http://localhost:5000` after starting the web serve
    - Check power supply voltage
    - Ensure proper grounding
    - Verify servo connections
-
-3. **Sensor Communication Issues**
-   - Verify I2C addresses
-   - Check wiring connections
-   - Ensure proper voltage levels
 
 ### Debugging
 
@@ -234,7 +232,7 @@ We welcome contributions! Please follow these steps:
 
 ## 📚 Documentation
 
-For detailed documentation, visit our [documentation site](https://your-docs-site.com).
+For detailed documentation, visit the [docs](docs/) directory in this repository.
 
 ## 📄 License
 
