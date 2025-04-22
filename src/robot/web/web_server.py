@@ -11,6 +11,7 @@ import os
 from robot.controllers.mock_robot_controller import MockRobotController
 from robot.controllers.robot_controller import RobotController
 from robot.config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS
+from robot.calibration import load_calibration, save_calibration
 
 def is_raspberry_pi():
     """
@@ -68,11 +69,21 @@ def safe_robot_action(action_func, *args, **kwargs):
 @app.route('/')
 def index():
     """Render the main web interface."""
-    print(f"Template directory: {templates_dir}")
-    print(f"Static directory: {static_dir}")
-    print(f"Template files: {os.listdir(templates_dir)}")
-    print(f"Static files: {os.listdir(static_dir)}")
-    return render_template('index.html')
+    # Get servo information for the template
+    servos = []
+    for servo_name, servo_index in vars(Servos).items():
+        if not servo_name.startswith('_'):  # Skip private attributes
+            limits = SERVO_LIMITS.get(servo_index, (0, 180))
+            default = DEFAULT_POSITIONS.get(servo_index, 90)
+            servos.append({
+                'id': servo_index,
+                'name': servo_name,
+                'min': limits[0],
+                'max': limits[1],
+                'default': default
+            })
+    
+    return render_template('index.html', servos=servos)
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -86,9 +97,16 @@ def init_robot():
     try:
         safe_robot_action(robot.initialize_robot)
         robot_initialized = True
-        return jsonify({"status": "success", "message": "Robot initialized"})
+        return jsonify({
+            "status": "success",
+            "message": "Robot initialized successfully"
+        })
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        robot_initialized = False
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to initialize robot: {str(e)}"
+        }), 500
 
 @app.route('/api/servo', methods=['POST'])
 def move_servo():
@@ -233,6 +251,70 @@ def dance():
         # Run dance in a separate thread to avoid blocking
         threading.Thread(target=safe_robot_action, args=(robot.dance,)).start()
         return jsonify({"status": "success", "message": "Dance routine started"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/calibration', methods=['GET'])
+def get_calibration():
+    """Get the current calibration values."""
+    try:
+        calibrated_positions = load_calibration()
+        return jsonify({
+            "status": "success",
+            "calibration": calibrated_positions
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/calibration', methods=['POST'])
+def save_calibration_values():
+    """Save new calibration values."""
+    if not robot_initialized:
+        return jsonify({"status": "error", "message": "Robot not initialized"}), 400
+    
+    try:
+        data = request.get_json()
+        calibrated_positions = data.get('calibration')
+        
+        if not calibrated_positions:
+            return jsonify({"status": "error", "message": "No calibration data provided"}), 400
+        
+        # Convert string keys to integers
+        calibrated_positions = {int(k): v for k, v in calibrated_positions.items()}
+        
+        # Save the calibration
+        save_calibration(calibrated_positions)
+        return jsonify({"status": "success", "message": "Calibration saved successfully"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/calibration/servo/<int:servo_index>', methods=['POST'])
+def calibrate_servo_endpoint(servo_index):
+    """Calibrate a specific servo."""
+    if not robot_initialized:
+        return jsonify({"status": "error", "message": "Robot not initialized"}), 400
+    
+    try:
+        data = request.get_json()
+        position = data.get('position')
+        
+        if position is None:
+            return jsonify({"status": "error", "message": "No position provided"}), 400
+        
+        # Update the servo position
+        safe_robot_action(robot.set_servo, servo_index, position)
+        
+        # Get current calibration
+        calibrated_positions = load_calibration()
+        calibrated_positions[servo_index] = position
+        
+        # Save updated calibration
+        save_calibration(calibrated_positions)
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Servo {servo_index} calibrated to position {position}"
+        })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 

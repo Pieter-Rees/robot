@@ -29,6 +29,17 @@
             <div id="status" class="status"></div>
         </div>
 
+        <!-- Calibration Panel -->
+        <div class="panel">
+            <h2>Calibration</h2>
+            <div class="calibration-controls">
+                <button id="loadCalibrationBtn" class="btn btn-secondary" disabled>Load Calibration</button>
+                <button id="saveCalibrationBtn" class="btn btn-primary" disabled>Save Calibration</button>
+                <button id="resetCalibrationBtn" class="btn btn-danger" disabled>Reset to Defaults</button>
+            </div>
+            <div class="calibration-status" id="calibrationStatus"></div>
+        </div>
+
         <!-- Servo Control Panel -->
         <div class="panel">
             <h2>Servo Control</h2>
@@ -40,6 +51,11 @@
                         <input type="range" class="servo-slider" id="{{ servo.id }}" min="{{ servo.min }}"
                             max="{{ servo.max }}" value="{{ servo.default }}" disabled>
                         <span class="servo-value">{{ servo.default }}</span>
+                        <button class="btn btn-secondary calibrate-btn" disabled>Calibrate</button>
+                    </div>
+                    <div class="servo-info">
+                        <span class="servo-limit">Min: {{ servo.min }}°</span>
+                        <span class="servo-limit">Max: {{ servo.max }}°</span>
                     </div>
                 </div>
                 {% endfor %}
@@ -47,19 +63,23 @@
         </div>
     </div>
 
+    <script type="text/template" id="servo-config">
+        [
+        {%- for servo in servos -%}
+            {
+                "id": "{{ servo.id }}",
+                "name": "{{ servo.name }}",
+                "min": {{ servo.min }},
+                "max": {{ servo.max }},
+                "default": {{ servo.default }}
+            }{%- if not loop.last -%},{%- endif -%}
+        {%- endfor -%}
+        ]
+    </script>
     <script>
-        // Servo configuration
-        const servos = [
-            {% for servo in servos %}
-        {
-            id: "{{ servo.id }}",
-                name: "{{ servo.name }}",
-                    min: { { servo.min } },
-            max: { { servo.max } },
-                default: { { servo.default } }
-        } {% if not loop.last %}, {% endif %}
-        {% endfor %}
-        ];
+        // Load servo configuration
+        const servoConfig = document.getElementById('servo-config').textContent.trim();
+        const servos = JSON.parse(servoConfig);
 
         // API endpoints
         const API = {
@@ -69,7 +89,10 @@
             walk: '/api/walk',
             dance: '/api/dance',
             setServo: '/api/servo',
-            getServos: '/api/servos'
+            getServos: '/api/servos',
+            getCalibration: '/api/calibration',
+            saveCalibration: '/api/calibration',
+            calibrateServo: (servoId) => `/api/calibration/servo/${servoId}`
         };
 
         // Helper functions
@@ -79,20 +102,38 @@
             status.className = `status ${type}`;
         }
 
+        function showCalibrationStatus(message, type = 'info') {
+            const status = document.getElementById('calibrationStatus');
+            status.textContent = message;
+            status.className = `calibration-status ${type}`;
+        }
+
         function updateRobotState(initialized) {
             const state = document.getElementById('robotState');
             state.className = `robot-state ${initialized ? 'state-initialized' : 'state-not-initialized'}`;
             state.textContent = initialized ? 'Initialized' : 'Not Initialized';
 
             // Enable/disable buttons based on initialization state
-            document.getElementById('standBtn').disabled = !initialized;
-            document.getElementById('walkBtn').disabled = !initialized;
-            document.getElementById('danceBtn').disabled = !initialized;
-            document.getElementById('shutdownBtn').disabled = !initialized;
+            const buttons = [
+                'standBtn',
+                'walkBtn',
+                'danceBtn',
+                'shutdownBtn',
+                'loadCalibrationBtn',
+                'saveCalibrationBtn',
+                'resetCalibrationBtn'
+            ];
 
-            // Enable/disable servo sliders
-            document.querySelectorAll('.servo-slider').forEach(slider => {
-                slider.disabled = !initialized;
+            buttons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.disabled = !initialized;
+                }
+            });
+
+            // Enable/disable servo sliders and calibration buttons
+            document.querySelectorAll('.servo-slider, .calibrate-btn').forEach(element => {
+                element.disabled = !initialized;
             });
         }
 
@@ -106,9 +147,11 @@
                     updateRobotState(true);
                 } else {
                     showStatus(data.message || 'Failed to initialize robot', 'error');
+                    updateRobotState(false);
                 }
             } catch (error) {
                 showStatus('Error initializing robot: ' + error.message, 'error');
+                updateRobotState(false);
             }
         });
 
@@ -169,10 +212,89 @@
             }
         });
 
+        // Calibration event listeners
+        document.getElementById('loadCalibrationBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch(API.getCalibration);
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Update servo sliders with calibration values
+                    Object.entries(data.calibration).forEach(([servoId, position]) => {
+                        const slider = document.getElementById(servoId);
+                        if (slider) {
+                            slider.value = position;
+                            slider.nextElementSibling.textContent = position;
+                            // Update servo position
+                            fetch(API.setServo, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ servo: parseInt(servoId), position })
+                            });
+                        }
+                    });
+                    showCalibrationStatus('Calibration loaded successfully', 'success');
+                } else {
+                    showCalibrationStatus(data.message || 'Failed to load calibration', 'error');
+                }
+            } catch (error) {
+                showCalibrationStatus('Error loading calibration: ' + error.message, 'error');
+            }
+        });
+
+        document.getElementById('saveCalibrationBtn').addEventListener('click', async () => {
+            try {
+                // Get current positions from all servo sliders
+                const calibration = {};
+                servos.forEach(servo => {
+                    const slider = document.getElementById(servo.id);
+                    if (slider) {
+                        calibration[servo.id] = parseInt(slider.value);
+                    }
+                });
+
+                const response = await fetch(API.saveCalibration, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ calibration })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showCalibrationStatus('Calibration saved successfully', 'success');
+                } else {
+                    showCalibrationStatus(data.message || 'Failed to save calibration', 'error');
+                }
+            } catch (error) {
+                showCalibrationStatus('Error saving calibration: ' + error.message, 'error');
+            }
+        });
+
+        document.getElementById('resetCalibrationBtn').addEventListener('click', async () => {
+            try {
+                // Reset all servo sliders to default positions
+                servos.forEach(servo => {
+                    const slider = document.getElementById(servo.id);
+                    if (slider) {
+                        slider.value = servo.default;
+                        slider.nextElementSibling.textContent = servo.default;
+                        // Update servo position
+                        fetch(API.setServo, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ servo: parseInt(servo.id), position: servo.default })
+                        });
+                    }
+                });
+                showCalibrationStatus('Reset to default positions', 'info');
+            } catch (error) {
+                showCalibrationStatus('Error resetting calibration: ' + error.message, 'error');
+            }
+        });
+
         // Servo slider event listeners
         servos.forEach(servo => {
             const slider = document.getElementById(servo.id);
             const valueDisplay = slider.nextElementSibling;
+            const calibrateBtn = valueDisplay.nextElementSibling;
 
             slider.addEventListener('input', () => {
                 valueDisplay.textContent = slider.value;
@@ -186,7 +308,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            servo: servo.id,
+                            servo: parseInt(servo.id),
                             position: parseInt(slider.value)
                         })
                     });
@@ -198,25 +320,42 @@
                     showStatus('Error setting servo position: ' + error.message, 'error');
                 }
             });
+
+            calibrateBtn.addEventListener('click', async () => {
+                try {
+                    const response = await fetch(API.calibrateServo(servo.id), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ position: parseInt(slider.value) })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        showCalibrationStatus(`Calibrated ${servo.name} to position ${slider.value}°`, 'success');
+                    } else {
+                        showCalibrationStatus(data.message || 'Failed to calibrate servo', 'error');
+                    }
+                } catch (error) {
+                    showCalibrationStatus('Error calibrating servo: ' + error.message, 'error');
+                }
+            });
         });
 
-        // Periodically update servo positions and sensor data
+        // Periodically update servo positions
         setInterval(async () => {
             try {
-                // Update servo positions
-                const servosResponse = await fetch(API.getServos);
-                const servosData = await servosResponse.json();
-                if (servosData.status === 'success') {
-                    servosData.servos.forEach(servo => {
-                        const slider = document.getElementById(servo.id);
+                const response = await fetch(API.getServos);
+                const data = await response.json();
+                if (data.status === 'success') {
+                    Object.entries(data.servos).forEach(([servoId, servoData]) => {
+                        const slider = document.getElementById(servoId);
                         if (slider) {
-                            slider.value = servo.position;
-                            slider.nextElementSibling.textContent = servo.position;
+                            slider.value = servoData.position;
+                            slider.nextElementSibling.textContent = servoData.position;
                         }
                     });
                 }
             } catch (error) {
-                console.error('Error updating data:', error);
+                console.error('Error updating servo positions:', error);
             }
         }, 1000);
     </script>
