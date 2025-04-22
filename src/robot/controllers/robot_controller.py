@@ -6,6 +6,14 @@ Provides classes and functions to control servo motors for robot movements.
 import time
 import platform
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+from typing import Dict, Tuple, List, Optional, Set
+from dataclasses import dataclass
+from contextlib import contextmanager
+import os
+import numpy as np
+from functools import lru_cache
 
 # Handle platform-specific imports
 try:
@@ -32,189 +40,356 @@ except ImportError:
         sys.exit(1)
 
 from robot.base_controller import BaseRobotController
-from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS, I2C_CONFIG
+from ..config import config, Servos
+
+@dataclass
+class ServoState:
+    """Represents the current state of a servo motor."""
+    position: int
+    moving: bool = False
+    target_position: Optional[int] = None
+    last_update: float = 0.0
+
+class RobotControllerError(Exception):
+    """Base exception class for robot controller errors."""
+    pass
+
+class ServoError(RobotControllerError):
+    """Exception raised for servo-related errors."""
+    pass
 
 class RobotController(BaseRobotController):
     """
     Concrete implementation of a robot controller.
-    This class handles the actual robot hardware control.
+    This class handles the actual robot hardware control with optimized thread management.
+    
+    Thread Safety:
+    - All servo operations are protected by locks
+    - PWM operations are thread-safe
+    - State updates are atomic
+    
+    Error Handling:
+    - Validates all servo operations before execution
+    - Provides detailed error messages
+    - Gracefully handles hardware failures
     """
     
-    def __init__(self, config=None):
-        """Initialize the robot controller."""
+    def __init__(self):
+        """Initialize the robot controller with optimized thread management."""
         super().__init__()
         self.initialized = False
-        self.current_positions = DEFAULT_POSITIONS.copy()  # Initialize with default positions
-        self._pwm_cache = {}  # Cache for PWM values
+        self._servo_states: Dict[int, ServoState] = {}
+        self._pwm_cache: Dict[int, int] = {}
+        self._pwm_cache_lock = threading.Lock()
         
-        # Use provided config or fall back to I2C_CONFIG
-        self.config = config or I2C_CONFIG
+        # Optimized locks for thread safety
+        self._state_lock = threading.RLock()
+        self._pwm_lock = threading.Lock()
         
-        # Initialize the PCA9685 using config
+        # Initialize thread pool with optimal worker count
+        cpu_count = os.cpu_count() or 4
+        self._thread_pool = ThreadPoolExecutor(max_workers=min(cpu_count, 8))
+        
+        # Initialize servo states with pre-allocation
+        self._servo_states = {
+            servo_id: ServoState(position=config.get_calibrated_position(servo_id))
+            for servo_id in vars(Servos).values()
+            if isinstance(servo_id, int)
+        }
+        
+        # Initialize the PCA9685 with error handling
+        self.pwm = None
+        self.using_mock_pwm = False
+        self.initialization_error = None
+        
         try:
-            self.pwm = PCA9685(address=self.config['pca9685_address'], busnum=self.config['default_bus'])
-            self.pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
+            i2c_config = config.i2c
+            self.pwm = PCA9685(
+                address=i2c_config['pca9685_address'],
+                busnum=i2c_config['default_bus']
+            )
+            self.pwm.set_pwm_freq(50)
         except Exception as e:
-            if platform.system() == 'Windows':
-                self.pwm = MockPCA9685(address=self.config['pca9685_address'], busnum=self.config['default_bus'])
+            self.initialization_error = str(e)
+            if platform.system() == 'Windows' or "adafruit" in str(e).lower():
+                print(f"Warning: Using mock PCA9685 controller: {str(e)}")
+                self.pwm = MockPCA9685(
+                    address=i2c_config['pca9685_address'],
+                    busnum=i2c_config['default_bus']
+                )
                 self.pwm.set_pwm_freq(50)
+                self.using_mock_pwm = True
             else:
                 print(f"Warning: Failed to initialize PCA9685: {str(e)}")
-                self.pwm = None
     
-    def _move_to_default_positions(self, speed=0.01):
-        """Move all servos to their default positions."""
-        for servo_index, default_angle in DEFAULT_POSITIONS.items():
-            self.set_servo(servo_index, default_angle, speed=speed)
-
-    def initialize_robot(self) -> None:
-        """Initialize the robot hardware and move all servos to their default positions."""
+    @contextmanager
+    def _servo_operation(self, servo_id: int):
+        """Context manager for safe servo operations."""
         if not self.initialized:
-            self._move_to_default_positions()
-            self.initialized = True
+            if self.initialization_error:
+                raise RobotControllerError(f"Robot not initialized: {self.initialization_error}")
+            else:
+                raise RobotControllerError("Robot not initialized. Call initialize_robot() first.")
+        
+        if servo_id not in self._servo_states:
+            raise ServoError(f"Invalid servo ID: {servo_id}")
+        
+        with self._state_lock:
+            yield
     
-    def cleanup(self) -> None:
-        """
-        Clean up resources and safely shut down the robot.
-        """
-        if self.initialized:
-            # TODO: Add actual cleanup code here
-            print("Cleaning up robot resources...")
-            self.initialized = False
-    
-    def shutdown(self) -> None:
-        """Shutdown the robot controller and clean up resources."""
-        try:
-            # Move to neutral position and cleanup
-            self._move_to_default_positions()
-            self.cleanup()
-            
-            # Reset all PWM channels
-            if hasattr(self, 'pwm') and self.pwm is not None:
-                for channel in range(16):
-                    self.pwm.set_pwm(channel, 0, 0)
-        except Exception:
-            pass  # Ensure shutdown completes even if errors occur
-    
-    def _angle_to_pwm(self, angle):
+    @lru_cache(maxsize=128)
+    def _angle_to_pwm(self, angle: int) -> int:
         """Convert angle to PWM value with caching."""
-        if angle not in self._pwm_cache:
-            self._pwm_cache[angle] = int(205 + (angle / 180.0) * 205)
-        return self._pwm_cache[angle]
-
-    def set_servo(self, servo_index, angle, speed=0.01):
+        if not 0 <= angle <= 180:
+            raise ValueError(f"Angle {angle} outside valid range [0, 180]")
+        return int(205 + (angle / 180.0) * 205)
+    
+    def _validate_servo_params(self, servo_id: int, angle: float) -> int:
         """
-        Set a servo to a specific angle with controlled speed.
+        Validate servo parameters and return safe angle value.
         
         Args:
-            servo_index (int): Index of the servo to control
-            angle (float): Target angle in degrees
-            speed (float): Time delay between angle increments (lower = faster)
+            servo_id: The ID of the servo to validate
+            angle: The requested angle
+            
+        Returns:
+            The safe angle value to use
+            
+        Raises:
+            ServoError: If parameters are invalid
         """
-        # Validate inputs
-        if servo_index is None:
-            print("Error: servo_index cannot be None")
-            return
-            
-        if angle is None:
-            print("Error: angle cannot be None")
-            return
-            
-        # Apply safety limits
-        min_angle, max_angle = SERVO_LIMITS.get(servo_index, (0, 180))
-        safe_angle = max(min_angle, min(max_angle, angle))
-        
-        # Get current position with validation
-        current_angle = self.current_positions.get(servo_index, 90)
-        if current_angle is None:
-            print(f"Warning: No current position found for servo {servo_index}, using default 90°")
-            current_angle = 90
-            self.current_positions[servo_index] = current_angle
-        
-        # Check if PWM controller is available
-        if self.pwm is None:
-            self.current_positions[servo_index] = safe_angle
-            return
-        
-        # Calculate step direction and range
-        step = 1 if current_angle < safe_angle else -1
-        start = int(current_angle)
-        end = int(safe_angle) + step
-        
-        # Move to target position
         try:
-            for a in range(start, end, step):
-                pwm_value = self._angle_to_pwm(a)
-                if pwm_value is None:
-                    print(f"Error: Failed to convert angle {a} to PWM value")
-                    continue
-                self.pwm.set_pwm(servo_index, 0, pwm_value)
-                self.current_positions[servo_index] = a
-                time.sleep(speed)
-        except Exception as e:
-            print(f"Error moving servo {servo_index}: {str(e)}")
+            min_angle, max_angle = config.get_servo_limits(servo_id)
+        except ValueError as e:
+            raise ServoError(str(e))
+        
+        if not isinstance(angle, (int, float)):
+            raise ServoError(f"Invalid angle type: {type(angle)}")
+        
+        safe_angle = int(max(min_angle, min(max_angle, angle)))
+        if safe_angle != angle:
+            print(f"Warning: Angle {angle} clamped to {safe_angle} for servo {servo_id}")
+        
+        return safe_angle
     
-    def dance(self):
+    def set_servo_batch(self, servo_angles: Dict[int, float], speed: float = 0.01) -> None:
         """
-        Execute a dance sequence combining various movements.
+        Set multiple servos simultaneously with optimized movement.
+        
+        Args:
+            servo_angles: Dictionary mapping servo IDs to target angles
+            speed: Time delay between angle increments
         """
-        # Define dance sequences with minimal memory usage
-        sequences = (
-            # Initial pose
-            ((Servos.HEAD, 90), (Servos.SHOULDER_RIGHT, 60), (Servos.SHOULDER_LEFT, 120),
-             (Servos.ELBOW_RIGHT, 120), (Servos.ELBOW_LEFT, 60)),
-            # First move: Rocking side to side with arms
-            ((Servos.HIP_RIGHT, 70), (Servos.HIP_LEFT, 110), (Servos.SHOULDER_RIGHT, 80),
-             (Servos.SHOULDER_LEFT, 100)),
-            ((Servos.HIP_RIGHT, 110), (Servos.HIP_LEFT, 70), (Servos.SHOULDER_RIGHT, 40),
-             (Servos.SHOULDER_LEFT, 140)),
-            # Second move: Head bobbing with arm waves
-            ((Servos.HEAD, 70), (Servos.ELBOW_RIGHT, 150), (Servos.ELBOW_LEFT, 30)),
-            ((Servos.HEAD, 110), (Servos.ELBOW_RIGHT, 90), (Servos.ELBOW_LEFT, 90)),
-            # Third move: Full body twist
-            ((Servos.HIP_RIGHT, 60), (Servos.HIP_LEFT, 120), (Servos.SHOULDER_RIGHT, 40),
-             (Servos.SHOULDER_LEFT, 140), (Servos.HEAD, 60)),
-            ((Servos.HIP_RIGHT, 120), (Servos.HIP_LEFT, 60), (Servos.SHOULDER_RIGHT, 140),
-             (Servos.SHOULDER_LEFT, 40), (Servos.HEAD, 120)),
-            # Final pose
-            ((Servos.HEAD, 90), (Servos.SHOULDER_RIGHT, 60), (Servos.SHOULDER_LEFT, 120),
-             (Servos.ELBOW_RIGHT, 120), (Servos.ELBOW_LEFT, 60), (Servos.HIP_RIGHT, 90),
-             (Servos.HIP_LEFT, 90))
-        )
-        
-        # Execute dance sequences
-        for sequence in sequences:
-            # Move all servos in the sequence simultaneously
-            for servo_index, angle in sequence:
-                self.set_servo(servo_index, angle, speed=0.01)
-            time.sleep(0.4)
-        
-        print("Dance routine completed!")
-
-    def stand_up(self):
-        """Make the robot stand up by moving all servos to their default positions."""
         if not self.initialized:
-            return False
-            
-        if self.pwm is None:
-            return False
-            
+            raise RobotControllerError("Robot not initialized")
+        
+        # Validate all servos first
+        validated_angles = {}
+        for servo_id, angle in servo_angles.items():
+            try:
+                if servo_id not in self._servo_states:
+                    raise ServoError(f"Invalid servo ID: {servo_id}")
+                validated_angles[servo_id] = self._validate_servo_params(servo_id, angle)
+            except Exception as e:
+                print(f"Warning: Skipping servo {servo_id}: {str(e)}")
+                continue
+        
+        if not validated_angles:
+            raise ServoError("No valid servo angles provided")
+        
+        # In mock mode, simplify the operations to avoid thread complexity
+        if self.using_mock_pwm:
+            for servo_id, angle in validated_angles.items():
+                try:
+                    pwm_value = self._angle_to_pwm(angle)
+                    with self._pwm_lock:
+                        if self.pwm is not None:
+                            self.pwm.set_pwm(servo_id, 0, pwm_value)
+                    with self._state_lock:
+                        self._servo_states[servo_id].position = angle
+                    time.sleep(speed)
+                except Exception as e:
+                    print(f"Warning: Error setting servo {servo_id}: {str(e)}")
+            return
+        
+        # Group servos by movement range for optimized movement
+        groups: Dict[Tuple[int, int], Set[int]] = {}
+        for servo_id, target_angle in validated_angles.items():
+            current_angle = self._servo_states[servo_id].position
+            if current_angle != target_angle:
+                key = (current_angle, target_angle)
+                if key not in groups:
+                    groups[key] = set()
+                groups[key].add(servo_id)
+        
+        # Move servos in parallel groups
+        futures = []
+        for (current, target), servo_ids in groups.items():
+            future = self._thread_pool.submit(
+                self._move_servo_group,
+                servo_ids,
+                current,
+                target,
+                speed
+            )
+            futures.append(future)
+        
+        # Wait for all movements to complete with timeout
+        for future in as_completed(futures):
+            try:
+                future.result(timeout=5.0)  # 5 second timeout per group
+            except Exception as e:
+                print(f"Warning: Error during servo movement: {str(e)}")
+                continue
+
+    def _move_servo_group(self, servo_ids: Set[int], start: int, end: int, speed: float) -> None:
+        """Move a group of servos from start to end position with optimized PWM updates."""
+        step = 1 if start < end else -1
+        positions = range(start, end + step, step)
+        
+        # Pre-calculate PWM values for all positions
+        pwm_values = [self._angle_to_pwm(pos) for pos in positions]
+        
+        # Move servos in synchronized steps
+        for pwm_value in pwm_values:
+            with self._pwm_lock:
+                if self.pwm is not None:
+                    for servo_id in servo_ids:
+                        self.pwm.set_pwm(servo_id, 0, pwm_value)
+                with self._state_lock:
+                    for servo_id in servo_ids:
+                        self._servo_states[servo_id].position = pwm_value
+            time.sleep(speed)
+
+    def set_servo(self, servo_id: int, angle: float, speed: float = 0.01) -> None:
+        """Set a single servo position."""
+        self.set_servo_batch({servo_id: angle}, speed)
+
+    def initialize_robot(self) -> None:
+        """Initialize the robot hardware with optimized startup sequence."""
+        if self.initialized:
+            return
+        
         try:
-            self._move_to_default_positions()
-            return True
-        except Exception:
-            return False
+            # Check if PWM controller is available
+            if not self.pwm:
+                if self.initialization_error:
+                    raise RobotControllerError(f"Failed to initialize hardware: {self.initialization_error}")
+                else:
+                    raise RobotControllerError("PWM controller not initialized")
+            
+            # Get all default positions in parallel
+            futures = []
+            for servo_id in self._servo_states:
+                future = self._thread_pool.submit(
+                    config.get_calibrated_position,
+                    servo_id
+                )
+                futures.append((servo_id, future))
+            
+            # Collect results and create movement batch
+            default_positions = {}
+            for servo_id, future in futures:
+                try:
+                    default_positions[servo_id] = future.result()
+                except Exception as e:
+                    print(f"Warning: Could not get calibrated position for servo {servo_id}: {str(e)}")
+                    continue
+            
+            if not default_positions:
+                raise RobotControllerError("No valid servo positions found")
+                
+            # Move all servos to default positions in parallel
+            self.set_servo_batch(default_positions, speed=0.02)
+            self.initialized = True
+            
+        except Exception as e:
+            raise RobotControllerError(f"Failed to initialize robot: {str(e)}")
+    
+    def cleanup(self) -> None:
+        """Clean up resources with proper shutdown sequence."""
+        if self.initialized:
+            try:
+                # Clear caches
+                self._angle_to_pwm.cache_clear()
+                self._pwm_cache.clear()
+                
+                # Shutdown thread pool
+                self._thread_pool.shutdown(wait=True)
+                self.initialized = False
+            except:
+                pass
+    
+    def shutdown(self) -> None:
+        """Shutdown the robot controller with optimized cleanup."""
+        try:
+            if self.initialized:
+                # Get all default positions in parallel
+                futures = []
+                for servo_id in self._servo_states:
+                    future = self._thread_pool.submit(
+                        config.get_calibrated_position,
+                        servo_id
+                    )
+                    futures.append((servo_id, future))
+                
+                # Collect results and create movement batch
+                default_positions = {}
+                for servo_id, future in futures:
+                    try:
+                        default_positions[servo_id] = future.result()
+                    except:
+                        continue
+                
+                # Move all servos to default positions in parallel with timeout
+                future = self._thread_pool.submit(
+                    self.set_servo_batch,
+                    default_positions,
+                    speed=0.02
+                )
+                try:
+                    future.result(timeout=2.0)
+                except:
+                    pass
+            
+            self.cleanup()
+            
+            # Disable all PWM channels
+            if hasattr(self, 'pwm') and self.pwm is not None:
+                with self._pwm_lock:
+                    for channel in range(16):
+                        self.pwm.set_pwm(channel, 0, 0)
+                        
+        except Exception as e:
+            print(f"Warning: Error during shutdown: {str(e)}")
+    
+    @lru_cache(maxsize=128)
+    def get_servo_state(self, servo_id: int) -> ServoState:
+        """Get the current state of a servo with caching."""
+        with self._servo_operation(servo_id):
+            return self._servo_states[servo_id]
+    
+    def is_moving(self, servo_id: int) -> bool:
+        """Check if a servo is currently moving with optimized state access."""
+        with self._servo_operation(servo_id):
+            return self._servo_states[servo_id].moving
 
 if __name__ == "__main__":
     try:
-        # Example usage
         controller = RobotController()
         controller.initialize_robot()
         time.sleep(2)
         
-        controller.dance()
+        # Example movement sequence
+        controller.set_servo(Servos.HEAD, 45)
+        time.sleep(1)
+        controller.set_servo(Servos.HEAD, 135)
+        time.sleep(1)
+        controller.set_servo(Servos.HEAD, 90)
         
     except KeyboardInterrupt:
         print("\nProgram interrupted by user")
+    except Exception as e:
+        print(f"Error: {str(e)}")
     finally:
         controller.cleanup() 

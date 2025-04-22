@@ -22,7 +22,8 @@ dependencies = [
     "itsdangerous>=2.0.1",
     "MarkupSafe>=2.0.1",
     "Adafruit-PCA9685>=1.0.1",
-    "smbus2>=0.4.1"
+    "smbus2>=0.4.1",
+    "numpy>=1.24.0"
 ]
 
 [project.optional-dependencies]
