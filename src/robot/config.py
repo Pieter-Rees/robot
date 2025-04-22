@@ -92,19 +92,19 @@ DEFAULT_POSITIONS = {
 
 # Minimum and maximum angles for each servo to prevent damage
 SERVO_LIMITS = {
-    Servos.HEAD: (45, 135),
-    Servos.SHOULDER_RIGHT: (30, 150),
-    Servos.SHOULDER_LEFT: (30, 150),
-    Servos.ELBOW_RIGHT: (60, 180),
-    Servos.ELBOW_LEFT: (0, 120),
-    Servos.HIP_RIGHT: (60, 120),
-    Servos.HIP_LEFT: (60, 120),
-    Servos.KNEE_RIGHT: (60, 120),
-    Servos.KNEE_LEFT: (60, 120),
-    Servos.ANKLE_RIGHT: (60, 120),
-    Servos.ANKLE_LEFT: (60, 120),
-    Servos.WRIST_RIGHT: (30, 150),
-    Servos.WRIST_LEFT: (30, 150)
+    Servos.HEAD: (0, 180),
+    Servos.SHOULDER_RIGHT: (0, 180),
+    Servos.SHOULDER_LEFT: (0, 180),
+    Servos.ELBOW_RIGHT: (0, 180),
+    Servos.ELBOW_LEFT: (0, 180),
+    Servos.HIP_RIGHT: (0, 180),
+    Servos.HIP_LEFT: (0, 180),
+    Servos.KNEE_RIGHT: (0, 180),
+    Servos.KNEE_LEFT: (0, 180),
+    Servos.ANKLE_RIGHT: (0, 180),
+    Servos.ANKLE_LEFT: (0, 180),
+    Servos.WRIST_RIGHT: (0, 180),
+    Servos.WRIST_LEFT: (0, 180)
 }
 
 def load_calibrated_positions() -> Dict[int, int]:
