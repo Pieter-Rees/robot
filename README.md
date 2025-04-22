@@ -18,15 +18,8 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
 - **Modern Web Interface**
 
   - Real-time servo control with intuitive sliders
-  - Live sensor data visualization
   - Pre-programmed movement sequences
   - Responsive design for all devices
-
-- **Advanced Sensors**
-
-  - OT703-C86 vision sensor for environment awareness
-  - MPU-6050 motion sensor for balance and orientation
-  - Real-time data monitoring and logging
 
 - **Development Tools**
   - Mock controller for testing without hardware
@@ -42,8 +35,6 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
 - Raspberry Pi (recommended) or compatible hardware
 - Adafruit PCA9685 board
 - Standard servos (compatible with 50Hz PWM)
-- OT703-C86 sensor (for vision/eyes)
-- MPU-6050 sensor (for motion tracking)
 
 ### Installation
 
@@ -92,25 +83,6 @@ A comprehensive Python-based controller for a humanoid robot using the PCA9685 s
 | 11      | Right Wrist    | Controls right hand movement  |
 | 12      | Left Wrist     | Controls left hand movement   |
 
-### Sensor Configuration
-
-#### OT703-C86 (Eye Sensor)
-
-- I2C Address: 0x3C
-- Features:
-  - Distance measurement (0-200cm)
-  - Ambient light sensing
-  - High accuracy and reliability
-
-#### MPU-6050 (Motion Sensor)
-
-- I2C Address: 0x68
-- Features:
-  - 3-axis accelerometer (±2g range)
-  - 3-axis gyroscope (±250°/s range)
-  - Temperature sensor
-  - Digital Motion Processor
-
 ## 💻 Usage
 
 ### Starting the System
@@ -158,7 +130,6 @@ Access the web interface at `http://localhost:5000` after starting the web serve
 
 - Real-time servo control with sliders
 - Pre-programmed movements
-- Sensor data monitoring
 - Robot status display
 - Movement sequence programming
 
@@ -173,8 +144,7 @@ Access the web interface at `http://localhost:5000` after starting the web serve
 | `/api/walk`          | POST   | Make robot walk forward     |
 | `/api/shutdown`      | POST   | Shutdown the robot          |
 | `/api/robot_info`    | GET    | Get robot state information |
-| `/api/eyes`          | GET    | Get eye sensor data         |
-| `/api/mpu6050`       | GET    | Get motion sensor data      |
+| `/api/dance`         | POST   | Start dance routine         |
 
 ## 🔧 Troubleshooting
 
@@ -192,11 +162,6 @@ Access the web interface at `http://localhost:5000` after starting the web serve
    - Check power supply voltage
    - Ensure proper grounding
    - Verify servo connections
-
-3. **Sensor Communication Issues**
-   - Verify I2C addresses
-   - Check wiring connections
-   - Ensure proper voltage levels
 
 ### Debugging
 

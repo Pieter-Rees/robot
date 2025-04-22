@@ -9,351 +9,212 @@
 </head>
 
 <body>
-    <h1>🤖 Robot Control Panel</h1>
+    <h1>Robot Control Panel</h1>
 
     <div class="container">
+        <!-- Control Panel -->
         <div class="panel">
-            <h2>Robot Status</h2>
+            <h2>Control Panel</h2>
             <div class="button-group">
-                <button id="initRobot" class="btn btn-primary">Initialize Robot</button>
-                <button id="shutdownRobot" class="btn btn-danger" disabled>Shutdown Robot</button>
+                <button id="initBtn" class="btn btn-primary">Initialize Robot</button>
+                <button id="standBtn" class="btn btn-primary" disabled>Stand Up</button>
+                <button id="walkBtn" class="btn btn-primary" disabled>Walk</button>
+                <button id="danceBtn" class="btn btn-primary" disabled>Dance</button>
+                <button id="shutdownBtn" class="btn btn-danger" disabled>Shutdown</button>
             </div>
-            <div id="robotState" class="robot-state">Robot Status: <span id="robotStateText">Not Initialized</span>
-            </div>
-            <div id="statusMessage" class="status"></div>
-            <div id="loader" class="loader"></div>
+            <div id="status" class="status"></div>
         </div>
 
+        <!-- Servo Control Panel -->
         <div class="panel">
-            <h2>Motion Controls</h2>
-            <div class="button-group">
-                <button id="standUp" class="btn btn-primary" disabled>Stand Up</button>
-                <button id="dance" class="btn btn-primary" disabled>Dance! 🕺</button>
-            </div>
-            <div class="steps-control">
-                <button id="walk" class="btn btn-primary" disabled>Walk Forward</button>
-                <input type="number" id="steps" value="1" min="1" max="10">
-                <span>steps</span>
-            </div>
-        </div>
-
-        <div class="panel">
-            <h2>Joint Controls</h2>
-            <div id="servoControls" class="servo-controls">
-                <!-- Servo controls will be generated dynamically -->
+            <h2>Servo Control</h2>
+            <div class="servo-controls">
+                {% for servo in servos %}
+                <div class="servo-card">
+                    <h3>{{ servo.name }}</h3>
+                    <div class="slider-container">
+                        <input type="range" class="servo-slider" id="{{ servo.id }}" min="{{ servo.min }}"
+                            max="{{ servo.max }}" value="{{ servo.default }}" disabled>
+                        <span class="servo-value">{{ servo.default }}</span>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 
     <script>
-        // Robot servo mapping
-        const servoNames = {
-            0: "Head",
-            1: "Shoulder Right",
-            2: "Shoulder Left",
-            3: "Elbow Right",
-            4: "Elbow Left",
-            5: "Hip Right",
-            6: "Hip Left",
-            7: "Knee Right",
-            8: "Knee Left",
-            9: "Ankle Right",
-            10: "Ankle Left",
-            11: "Wrist Right",
-            12: "Wrist Left"
+        // Servo configuration
+        const servos = [
+            {% for servo in servos %}
+        {
+            id: "{{ servo.id }}",
+                name: "{{ servo.name }}",
+                    min: { { servo.min } },
+            max: { { servo.max } },
+                default: { { servo.default } }
+        } {% if not loop.last %}, {% endif %}
+        {% endfor %}
+        ];
+
+        // API endpoints
+        const API = {
+            init: '/api/init',
+            shutdown: '/api/shutdown',
+            stand: '/api/stand',
+            walk: '/api/walk',
+            dance: '/api/dance',
+            setServo: '/api/servo',
+            getServos: '/api/servos'
         };
 
-        // Global state
-        let robotInitialized = false;
-        let servoData = {};
-        let statusTimeout = null;
-
-        // DOM Elements
-        const initButton = document.getElementById('initRobot');
-        const shutdownButton = document.getElementById('shutdownRobot');
-        const standButton = document.getElementById('standUp');
-        const walkButton = document.getElementById('walk');
-        const danceButton = document.getElementById('dance');
-        const stepsInput = document.getElementById('steps');
-        const statusMessage = document.getElementById('statusMessage');
-        const robotStateText = document.getElementById('robotStateText');
-        const loader = document.getElementById('loader');
-        const servoControls = document.getElementById('servoControls');
-
-        // Initialize event listeners
-        document.addEventListener('DOMContentLoaded', function () {
-            initButton.addEventListener('click', initializeRobot);
-            shutdownButton.addEventListener('click', shutdownRobot);
-            standButton.addEventListener('click', standUp);
-            walkButton.addEventListener('click', walkForward);
-            danceButton.addEventListener('click', dance);
-
-            // Get robot info on page load
-            getRobotInfo();
-        });
-
-        // Fetch robot information
-        function getRobotInfo() {
-            if (!robotInitialized) {
-                return; // Don't make info requests if robot is not initialized
-            }
-
-            fetch('/api/robot_info')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        robotInitialized = data.initialized;
-                        servoData = data.servos;
-                        updateUIState();
-                        generateServoControls();
-                    } else if (data.status === 'error' && data.message === 'Robot not initialized') {
-                        robotInitialized = false;
-                        updateUIState();
-                    }
-                })
-                .catch(error => {
-                    showStatus('Error fetching robot info: ' + error, 'error');
-                });
+        // Helper functions
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
         }
 
-        // Initialize the robot
-        function initializeRobot() {
-            setLoading(true);
-            fetch('/api/init', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        robotInitialized = true;
-                        showStatus(data.message, 'success');
-                        updateUIState();
-                        getRobotInfo();
-                    } else {
-                        showStatus(data.message, 'error');
-                    }
-                    setLoading(false);
-                })
-                .catch(error => {
-                    showStatus('Error initializing robot: ' + error, 'error');
-                    setLoading(false);
-                });
-        }
+        function updateRobotState(initialized) {
+            const state = document.getElementById('robotState');
+            state.className = `robot-state ${initialized ? 'state-initialized' : 'state-not-initialized'}`;
+            state.textContent = initialized ? 'Initialized' : 'Not Initialized';
 
-        // Shutdown the robot
-        function shutdownRobot() {
-            setLoading(true);
-            fetch('/api/shutdown', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        robotInitialized = false;
-                        showStatus(data.message, 'success');
-                        updateUIState();
-                    } else {
-                        showStatus(data.message, 'error');
-                    }
-                    setLoading(false);
-                })
-                .catch(error => {
-                    showStatus('Error shutting down robot: ' + error, 'error');
-                    setLoading(false);
-                });
-        }
+            // Enable/disable buttons based on initialization state
+            document.getElementById('standBtn').disabled = !initialized;
+            document.getElementById('walkBtn').disabled = !initialized;
+            document.getElementById('danceBtn').disabled = !initialized;
+            document.getElementById('shutdownBtn').disabled = !initialized;
 
-        // Make the robot stand up
-        function standUp() {
-            setLoading(true);
-            showStatus('Standing up...', 'info', 3000);
-            fetch('/api/stand', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        showStatus('Robot is standing up', 'success', 3000);
-                    } else {
-                        showStatus(data.message, 'error', 5000);
-                    }
-                    setLoading(false);
-                    // Refresh servo positions after standing up
-                    setTimeout(getRobotInfo, 2000);
-                })
-                .catch(error => {
-                    showStatus('Error standing up: ' + error, 'error', 5000);
-                    setLoading(false);
-                });
-        }
-
-        // Make the robot walk forward
-        function walkForward() {
-            const steps = parseInt(stepsInput.value, 10) || 1;
-            setLoading(true);
-            showStatus(`Walking forward ${steps} step${steps > 1 ? 's' : ''}...`, 'info', 3000);
-            fetch('/api/walk', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ steps: steps })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        showStatus(`Walking forward ${steps} step${steps > 1 ? 's' : ''}`, 'success', steps * 2000);
-                    } else {
-                        showStatus(data.message, 'error', 5000);
-                    }
-                    setLoading(false);
-                    // Refresh servo positions after walking
-                    setTimeout(getRobotInfo, steps * 2000);
-                })
-                .catch(error => {
-                    showStatus('Error walking: ' + error, 'error', 5000);
-                    setLoading(false);
-                });
-        }
-
-        // Make the robot dance
-        function dance() {
-            setLoading(true);
-            fetch('/api/dance', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        showStatus(data.message, 'success');
-                    } else {
-                        showStatus(data.message, 'error');
-                    }
-                    setLoading(false);
-                    // Refresh servo positions after dancing
-                    setTimeout(getRobotInfo, 10000); // Dance routine takes about 10 seconds
-                })
-                .catch(error => {
-                    showStatus('Error dancing: ' + error, 'error');
-                    setLoading(false);
-                });
-        }
-
-        // Move a specific servo
-        function moveServo(servoIndex, angle) {
-            fetch('/api/servo', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    servo: servoIndex,
-                    angle: angle,
-                    speed: 0.01
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Update the position display
-                        const valueDisplay = document.getElementById(`servo-value-${servoIndex}`);
-                        if (valueDisplay) {
-                            valueDisplay.textContent = `${angle}°`;
-                        }
-                    } else {
-                        showStatus(data.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    showStatus('Error moving servo: ' + error, 'error');
-                });
-        }
-
-        // Generate servo control sliders
-        function generateServoControls() {
-            servoControls.innerHTML = '';
-
-            for (const servoIndex in servoData) {
-                const servo = servoData[servoIndex];
-                const servoCard = document.createElement('div');
-                servoCard.className = 'servo-card';
-
-                const servoName = servoNames[servoIndex] || `Servo ${servoIndex}`;
-
-                servoCard.innerHTML = `
-                    <h3>${servoName}</h3>
-                    <div class="slider-container">
-                        <input type="range" 
-                               id="servo-${servoIndex}" 
-                               class="servo-slider" 
-                               min="${servo.min}" 
-                               max="${servo.max}" 
-                               value="${servo.position}" 
-                               ${!robotInitialized ? 'disabled' : ''}
-                               oninput="moveServo(${servoIndex}, this.value); document.getElementById('servo-value-${servoIndex}').textContent = this.value + '°';">
-                        <div id="servo-value-${servoIndex}" class="servo-value">${servo.position}°</div>
-                    </div>
-                `;
-
-                servoControls.appendChild(servoCard);
-            }
-        }
-
-        // Show status message
-        function showStatus(message, type, duration = 5000) {
-            // Clear any existing timeout
-            if (statusTimeout) {
-                clearTimeout(statusTimeout);
-            }
-
-            statusMessage.textContent = message;
-            statusMessage.className = 'status ' + type;
-
-            // Clear status after specified duration
-            statusTimeout = setTimeout(() => {
-                statusMessage.className = 'status';
-            }, duration);
-        }
-
-        // Set loading state
-        function setLoading(isLoading) {
-            if (isLoading) {
-                loader.className = 'loader visible';
-            } else {
-                loader.className = 'loader';
-            }
-        }
-
-        // Update UI based on robot state
-        function updateUIState() {
-            initButton.disabled = robotInitialized;
-            shutdownButton.disabled = !robotInitialized;
-            standButton.disabled = !robotInitialized;
-            walkButton.disabled = !robotInitialized;
-            danceButton.disabled = !robotInitialized;
-            stepsInput.disabled = !robotInitialized;
-
-            // Update persistent robot state
-            robotStateText.textContent = robotInitialized ? 'Initialized' : 'Not Initialized';
-            robotStateText.className = robotInitialized ? 'state-initialized' : 'state-not-initialized';
-
-            // Update all servo sliders
+            // Enable/disable servo sliders
             document.querySelectorAll('.servo-slider').forEach(slider => {
-                slider.disabled = !robotInitialized;
+                slider.disabled = !initialized;
             });
         }
+
+        // Event listeners
+        document.getElementById('initBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch(API.init, { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showStatus(data.message || 'Robot initialized successfully', 'success');
+                    updateRobotState(true);
+                } else {
+                    showStatus(data.message || 'Failed to initialize robot', 'error');
+                }
+            } catch (error) {
+                showStatus('Error initializing robot: ' + error.message, 'error');
+            }
+        });
+
+        document.getElementById('shutdownBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch(API.shutdown, { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showStatus(data.message || 'Robot shut down successfully', 'success');
+                    updateRobotState(false);
+                } else {
+                    showStatus(data.message || 'Failed to shut down robot', 'error');
+                }
+            } catch (error) {
+                showStatus('Error shutting down robot: ' + error.message, 'error');
+            }
+        });
+
+        document.getElementById('standBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch(API.stand, { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showStatus(data.message || 'Robot standing up', 'success');
+                } else {
+                    showStatus(data.message || 'Failed to make robot stand', 'error');
+                }
+            } catch (error) {
+                showStatus('Error making robot stand: ' + error.message, 'error');
+            }
+        });
+
+        document.getElementById('walkBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch(API.walk, { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showStatus(data.message || 'Robot walking', 'success');
+                } else {
+                    showStatus(data.message || 'Failed to make robot walk', 'error');
+                }
+            } catch (error) {
+                showStatus('Error making robot walk: ' + error.message, 'error');
+            }
+        });
+
+        document.getElementById('danceBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch(API.dance, { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showStatus(data.message || 'Robot dancing', 'success');
+                } else {
+                    showStatus(data.message || 'Failed to make robot dance', 'error');
+                }
+            } catch (error) {
+                showStatus('Error making robot dance: ' + error.message, 'error');
+            }
+        });
+
+        // Servo slider event listeners
+        servos.forEach(servo => {
+            const slider = document.getElementById(servo.id);
+            const valueDisplay = slider.nextElementSibling;
+
+            slider.addEventListener('input', () => {
+                valueDisplay.textContent = slider.value;
+            });
+
+            slider.addEventListener('change', async () => {
+                try {
+                    const response = await fetch(API.setServo, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            servo: servo.id,
+                            position: parseInt(slider.value)
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.status !== 'success') {
+                        showStatus(data.message || 'Failed to set servo position', 'error');
+                    }
+                } catch (error) {
+                    showStatus('Error setting servo position: ' + error.message, 'error');
+                }
+            });
+        });
+
+        // Periodically update servo positions and sensor data
+        setInterval(async () => {
+            try {
+                // Update servo positions
+                const servosResponse = await fetch(API.getServos);
+                const servosData = await servosResponse.json();
+                if (servosData.status === 'success') {
+                    servosData.servos.forEach(servo => {
+                        const slider = document.getElementById(servo.id);
+                        if (slider) {
+                            slider.value = servo.position;
+                            slider.nextElementSibling.textContent = servo.position;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error updating data:', error);
+            }
+        }, 1000);
     </script>
 </body>
 

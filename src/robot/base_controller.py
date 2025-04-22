@@ -36,16 +36,6 @@ class BaseRobotController(ABC):
         """Shutdown the robot and release all resources."""
         pass
     
-    @abstractmethod
-    def get_eye_data(self):
-        """
-        Get data from the eye sensor.
-        
-        Returns:
-            dict: Dictionary containing distance and ambient light readings
-        """
-        pass
-    
     def stand_up(self):
         """
         Execute sequence to make the robot stand up from a sitting/lying position.

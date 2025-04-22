@@ -1,45 +1,255 @@
 #!/usr/bin/env python3
 """
-Robot Controller Starter Script
+Startup script for the humanoid robot control system.
 
-This script provides a simple way to start either the robot controller or web interface.
+This module provides a menu-driven interface to access the various components
+of the humanoid robot control system. It handles dependency management,
+system initialization, and provides access to different control interfaces.
+
+The main components accessible through this interface are:
+- Web Interface: Browser-based control panel
+- Command Line Controller: Terminal-based control interface
+- Calibration Tool: Utility for calibrating servo motors
 """
-
-import argparse
+from pathlib import Path
+import os
+import platform
+import subprocess
 import sys
-from robot.controllers import create_controller
-from robot import web_app
-from robot.config import I2C_CONFIG
+import time
+from typing import List, Optional
 
-def main():
-    parser = argparse.ArgumentParser(description='Robot Controller Starter')
-    parser.add_argument('--mode', choices=['controller', 'web'], default='controller',
-                      help='Mode to start the robot in (default: controller)')
-    parser.add_argument('--host', default='0.0.0.0',
-                      help='Host to run the web server on (default: 0.0.0.0)')
-    parser.add_argument('--port', type=int, default=5000,
-                      help='Port to run the web server on (default: 5000)')
-    
-    args = parser.parse_args()
-    
-    if args.mode == 'controller':
-        try:
-            controller = create_controller(I2C_CONFIG)
-            print("Starting robot controller...")
-            # Add your controller initialization and main loop here
-            # For example:
-            # controller.initialize()
-            # controller.run()
-        except Exception as e:
-            print(f"Error starting controller: {e}", file=sys.stderr)
-            sys.exit(1)
-    else:
-        try:
-            print(f"Starting web interface on {args.host}:{args.port}...")
-            web_app.run(host=args.host, port=args.port)
-        except Exception as e:
-            print(f"Error starting web interface: {e}", file=sys.stderr)
-            sys.exit(1)
+# Add src directory to Python path
+src_path = str(Path(__file__).parent / "src")
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 
-if __name__ == '__main__':
-    main() 
+# Also add the parent directory to support 'robot' imports
+parent_path = str(Path(__file__).parent)
+if parent_path not in sys.path:
+    sys.path.insert(0, parent_path)
+
+def is_raspberry_pi() -> bool:
+    """
+    Check if the code is running on a Raspberry Pi.
+
+    This function attempts to detect if the current system is a Raspberry Pi
+    by first trying to use the robot controller's detection method, and falling
+    back to checking the device tree if that fails.
+
+    Returns:
+        bool: True if running on a Raspberry Pi, False otherwise
+    """
+    try:
+        # Import relative to src directory that was added to sys.path
+        from robot.controllers.controller_factory import is_raspberry_pi as pi_check
+        return pi_check()
+    except ImportError:
+        # Fallback if import fails
+        try:
+            with open('/proc/device-tree/model', 'r') as f:
+                return 'raspberry pi' in f.read().lower()
+        except:
+            return False
+
+def clear_screen() -> None:
+    """Clear the terminal screen in an OS-independent way."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def check_dependencies() -> bool:
+    """
+    Check if required Python dependencies are installed.
+
+    This function attempts to import all required dependencies and tracks
+    any missing packages.
+
+    Returns:
+        bool: True if all dependencies are present, False otherwise
+    """
+    missing_deps: List[str] = []
+    
+    # Check for Flask
+    try:
+        import flask
+    except ImportError:
+        missing_deps.append("flask")
+    
+    # Check for basic robot packages
+    try:
+        from robot.base_controller import BaseRobotController
+    except ImportError:
+        missing_deps.append("robot.base_controller")
+    
+    # Check for the controllers
+    try:
+        from robot.controllers.robot_controller import RobotController
+    except ImportError:
+        missing_deps.append("robot.controllers.robot_controller")
+    
+    try:
+        from robot.controllers.mock_robot_controller import MockRobotController
+    except ImportError:
+        missing_deps.append("robot.controllers.mock_robot_controller")
+    
+    # Check for platform-specific dependencies
+    if is_raspberry_pi():
+        try:
+            import RPi.GPIO as GPIO
+        except ImportError:
+            missing_deps.append("RPi.GPIO")
+    
+    # Report results
+    if missing_deps:
+        print("Missing dependencies:")
+        for dep in missing_deps:
+            print(f"  - {dep}")
+        return False
+    return True
+
+def install_dependencies() -> bool:
+    """
+    Install dependencies from requirements.txt file.
+
+    Attempts to install all project dependencies using pip in editable mode.
+
+    Returns:
+        bool: True if installation successful, False otherwise
+    """
+    print("Installing dependencies...")
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
+        print("Dependencies installed successfully!")
+        return True
+    except subprocess.CalledProcessError:
+        print("Failed to install dependencies. Please install them manually.")
+        return False
+
+def display_header() -> None:
+    """Display the application header with title and information."""
+    clear_screen()
+    print("=" * 60)
+    print("       HUMANOID ROBOT CONTROL SYSTEM")
+    print("=" * 60)
+    print("A control system for Raspberry Pi Zero W with PCA9685 servo controller")
+    print("-" * 60)
+
+def display_ip() -> None:
+    """
+    Display the Raspberry Pi's IP address for web interface access.
+    
+    This function attempts to retrieve and display the device's IP address
+    using the hostname command.
+    """
+    try:
+        result = subprocess.run(["hostname", "-I"], capture_output=True, text=True)
+        ip = result.stdout.strip()
+        if ip:
+            print(f"Your Raspberry Pi's IP address: {ip}")
+            print(f"Access the web interface at: http://{ip}:5000")
+        else:
+            print("Could not determine IP address.")
+    except Exception:
+        print("Could not determine IP address.")
+    print("-" * 60)
+
+def main_menu() -> None:
+    """
+    Display the main menu and handle user input for program selection.
+
+    This function provides a loop that displays the main menu options and
+    handles user input to start different components of the system. The menu
+    includes options for:
+    - Starting the web interface
+    - Starting the command line controller
+    - Running the calibration tool
+    - Checking and installing dependencies
+    """
+    while True:
+        display_header()
+        display_ip()
+        
+        print("\nSelect an option:")
+        print("1. Start Web Interface")
+        print("2. Start Command Line Controller")
+        print("3. Run Calibration Tool")
+        print("4. Check and Install Dependencies")
+        print("5. Exit")
+        
+        choice = input("\nEnter your choice (1-5): ").strip()
+        
+        if choice == '1':
+            # Start web interface
+            clear_screen()
+            print("Starting web interface on port 5000...")
+            print("Press Ctrl+C to stop and return to menu")
+            try:
+                from robot.web.web_server import app
+                app.run(host='0.0.0.0', port=5000)
+            except KeyboardInterrupt:
+                print("\nWeb interface stopped")
+                input("Press Enter to continue...")
+                
+        elif choice == '2':
+            # Start command line controller
+            clear_screen()
+            print("Starting command line controller...")
+            print("Press Ctrl+C to stop and return to menu")
+            try:
+                # Import this way to avoid potential circular imports
+                sys.path.insert(0, src_path)  # Ensure src path is first in sys.path
+                from robot.controllers import create_controller
+                controller = create_controller()
+                controller.initialize_robot()
+                while True:
+                    time.sleep(1)
+            except ImportError as e:
+                print(f"Import error: {e}")
+                print("Try running 'pip install -e .' from the project root directory")
+                input("Press Enter to continue...")
+            except KeyboardInterrupt:
+                print("\nController stopped")
+                if 'controller' in locals():
+                    controller.shutdown()
+                input("Press Enter to continue...")
+                
+        elif choice == '3':
+            # Run calibration tool
+            clear_screen()
+            print("Starting calibration tool...")
+            print("Follow the on-screen instructions to calibrate your servos")
+            try:
+                if is_raspberry_pi():
+                    from robot.calibration import run_calibration
+                    run_calibration()
+                else:
+                    print("Calibration tool is only available on Raspberry Pi")
+                    print("Please run this on your actual robot hardware")
+            except KeyboardInterrupt:
+                print("\nCalibration tool stopped")
+            input("Press Enter to continue...")
+            
+        elif choice == '4':
+            # Check dependencies
+            clear_screen()
+            print("Checking dependencies...")
+            if check_dependencies():
+                print("All dependencies are installed!")
+            else:
+                install = input("Would you like to install missing dependencies? (y/n): ").strip().lower()
+                if install == 'y':
+                    install_dependencies()
+            input("Press Enter to continue...")
+            
+        elif choice == '5':
+            # Exit
+            clear_screen()
+            print("Thank you for using the Humanoid Robot Control System!")
+            print("Exiting...")
+            break
+            
+        else:
+            print("Invalid choice. Please try again.")
+            time.sleep(1)
+
+if __name__ == "__main__":
+    main_menu() 

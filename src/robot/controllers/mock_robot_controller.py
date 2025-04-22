@@ -21,12 +21,6 @@ class MockRobotController(BaseRobotController):
         # Store config for reference
         self.config = config
         
-        # Mock sensor data
-        self.mock_distance = 50.0  # Initial distance in cm
-        self.mock_light = 128  # Initial light level (0-255)
-        self.mock_accel = (0.0, 0.0, 1.0)  # Initial accelerometer data (x, y, z)
-        self.mock_gyro = (0.0, 0.0, 0.0)  # Initial gyroscope data (x, y, z)
-        
         # Flag to indicate if the controller is initialized
         self.is_initialized = False
         
@@ -81,53 +75,44 @@ class MockRobotController(BaseRobotController):
             self.current_positions[servo_index] = 90
         print("Robot shutdown complete!")
     
-    def get_eye_data(self):
-        """
-        Get mock data from the eye sensor.
+    def dance(self):
+        """Simulate a dance routine."""
+        print("Starting mock dance routine!")
         
-        Returns:
-            dict: Dictionary containing simulated distance and ambient light readings
-        """
-        # Simulate distance between 10 and 200 cm
-        distance = random.uniform(10, 200)
+        # Simulate some basic movements
+        for _ in range(3):
+            self.set_servo(Servos.HEAD, 70)
+            self.set_servo(Servos.SHOULDER_RIGHT, 60)
+            time.sleep(0.5)
+            self.set_servo(Servos.HEAD, 110)
+            self.set_servo(Servos.SHOULDER_LEFT, 120)
+            time.sleep(0.5)
         
-        # Simulate ambient light between 0 and 255
-        light = random.randint(0, 255)
+        print("Mock dance routine completed!")
+    
+    def stand_up(self):
+        """Simulate standing up."""
+        print("Mock robot standing up...")
+        for servo_index, default_angle in DEFAULT_POSITIONS.items():
+            self.set_servo(servo_index, default_angle)
+        print("Mock robot is standing")
+    
+    def step_forward(self):
+        """Simulate taking a step forward."""
+        print("Mock robot stepping forward...")
         
-        return {
-            "distance": distance,
-            "ambient_light": light
-        }
-
-    def get_mpu6050_data(self):
-        """
-        Get mock data from the MPU-6050 sensor.
+        # Simulate leg movement
+        self.set_servo(Servos.HIP_RIGHT, 60)
+        self.set_servo(Servos.KNEE_RIGHT, 120)
+        time.sleep(0.5)
         
-        Returns:
-            dict: Dictionary containing simulated accelerometer and gyroscope readings
-        """
-        # Simulate accelerometer data (±2g range)
-        accel_x = random.uniform(-2.0, 2.0)
-        accel_y = random.uniform(-2.0, 2.0)
-        accel_z = random.uniform(-2.0, 2.0)
+        self.set_servo(Servos.HIP_LEFT, 120)
+        self.set_servo(Servos.KNEE_LEFT, 60)
+        time.sleep(0.5)
         
-        # Simulate gyroscope data (±250°/s range)
-        gyro_x = random.uniform(-250.0, 250.0)
-        gyro_y = random.uniform(-250.0, 250.0)
-        gyro_z = random.uniform(-250.0, 250.0)
-        
-        return {
-            "accelerometer": {
-                "x": accel_x,
-                "y": accel_y,
-                "z": accel_z
-            },
-            "gyroscope": {
-                "x": gyro_x,
-                "y": gyro_y,
-                "z": gyro_z
-            }
-        }
+        # Return to standing position
+        self.stand_up()
+        print("Mock robot step completed")
 
 if __name__ == "__main__":
     try:

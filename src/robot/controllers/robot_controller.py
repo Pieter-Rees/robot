@@ -31,7 +31,6 @@ except ImportError:
         print("Error: Adafruit_PCA9685 module not found. Install with: pip install adafruit-pca9685")
         sys.exit(1)
 
-from ..sensors import OT703C86, MPU6050
 from robot.base_controller import BaseRobotController
 from ..config import Servos, DEFAULT_POSITIONS, SERVO_LIMITS, I2C_CONFIG
 
@@ -68,22 +67,6 @@ class RobotController(BaseRobotController):
             else:
                 print("Hardware control will not be available")
                 self.pwm = None
-        
-        # Initialize the OT703-C86 sensor
-        try:
-            self.eye_sensor = OT703C86()
-            print("Eye sensor initialized successfully")
-        except Exception as e:
-            print(f"Warning: Failed to initialize eye sensor: {str(e)}")
-            self.eye_sensor = None
-        
-        # Initialize the MPU-6050 sensor
-        try:
-            self.mpu6050 = MPU6050()
-            print("MPU6050 sensor initialized successfully")
-        except Exception as e:
-            print(f"Warning: Failed to initialize MPU6050 sensor: {str(e)}")
-            self.mpu6050 = None
     
     def initialize_robot(self) -> None:
         """
@@ -178,44 +161,6 @@ class RobotController(BaseRobotController):
                 self.pwm.set_pwm(servo_index, 0, pwm_value)
                 self.current_positions[servo_index] = a
                 time.sleep(speed)
-    
-    def get_eye_data(self):
-        """
-        Get data from the eye sensor.
-        
-        Returns:
-            dict: Dictionary containing distance and ambient light readings
-        """
-        distance = self.eye_sensor.read_distance()
-        light = self.eye_sensor.read_ambient_light()
-        
-        return {
-            "distance": distance,
-            "ambient_light": light
-        }
-    
-    def get_mpu6050_data(self):
-        """
-        Get data from the MPU-6050 sensor.
-        
-        Returns:
-            dict: Dictionary containing accelerometer and gyroscope readings
-        """
-        accel_data = self.mpu6050.read_accelerometer()
-        gyro_data = self.mpu6050.read_gyroscope()
-        
-        return {
-            "accelerometer": {
-                "x": accel_data[0] if accel_data else None,
-                "y": accel_data[1] if accel_data else None,
-                "z": accel_data[2] if accel_data else None
-            },
-            "gyroscope": {
-                "x": gyro_data[0] if gyro_data else None,
-                "y": gyro_data[1] if gyro_data else None,
-                "z": gyro_data[2] if gyro_data else None
-            }
-        }
     
     def dance(self):
         """

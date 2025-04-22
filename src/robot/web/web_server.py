@@ -3,7 +3,7 @@
 Web server for controlling the humanoid robot through a web interface.
 Provides REST API endpoints for robot control and a web UI.
 """
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 import threading
 import time
 import json
@@ -25,7 +25,15 @@ def is_raspberry_pi():
     except:
         return False
 
-app = Flask(__name__)
+# Get the absolute path to the web directory
+web_dir = os.path.dirname(os.path.abspath(__file__))
+templates_dir = os.path.join(web_dir, 'templates')
+static_dir = os.path.join(web_dir, 'static')
+
+app = Flask(__name__, 
+            template_folder=templates_dir,
+            static_folder=static_dir,
+            static_url_path='/static')
 
 # Create robot controller instance based on platform
 if is_raspberry_pi():
@@ -60,7 +68,16 @@ def safe_robot_action(action_func, *args, **kwargs):
 @app.route('/')
 def index():
     """Render the main web interface."""
+    print(f"Template directory: {templates_dir}")
+    print(f"Static directory: {static_dir}")
+    print(f"Template files: {os.listdir(templates_dir)}")
+    print(f"Static files: {os.listdir(static_dir)}")
     return render_template('index.html')
+
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """Serve static files."""
+    return send_from_directory(static_dir, filename)
 
 @app.route('/api/init', methods=['POST'])
 def init_robot():
@@ -81,8 +98,8 @@ def move_servo():
     
     try:
         data = request.get_json()
-        servo_index = data.get('servo')
-        angle = data.get('angle')
+        servo_index = int(data.get('servo'))  # Convert to integer
+        angle = float(data.get('angle'))  # Convert to float
         speed = data.get('speed', 0.01)
         
         if servo_index is None or angle is None:
@@ -90,6 +107,8 @@ def move_servo():
         
         safe_robot_action(robot.set_servo, servo_index, angle, speed)
         return jsonify({"status": "success"})
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid servo index or angle"}), 400
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -105,6 +124,31 @@ def get_servo_position(servo_index):
             "status": "success",
             "servo": servo_index,
             "position": position
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/servos', methods=['GET'])
+def get_all_servos():
+    """Get information about all servos."""
+    if not robot_initialized:
+        return jsonify({"status": "error", "message": "Robot not initialized"}), 400
+    
+    try:
+        # Format servo data for the frontend
+        servo_info = {}
+        for servo_index in DEFAULT_POSITIONS.keys():
+            position = robot.current_positions.get(servo_index, 90)
+            limits = SERVO_LIMITS.get(servo_index, (0, 180))
+            servo_info[servo_index] = {
+                "position": position,
+                "min": limits[0],
+                "max": limits[1]
+            }
+        
+        return jsonify({
+            "status": "success",
+            "servos": servo_info
         })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
