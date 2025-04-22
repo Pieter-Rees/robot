@@ -44,45 +44,33 @@ class RobotController(BaseRobotController):
         """Initialize the robot controller."""
         super().__init__()
         self.initialized = False
-        self.current_positions = {}  # Initialize current positions dictionary
+        self.current_positions = DEFAULT_POSITIONS.copy()  # Initialize with default positions
+        self._pwm_cache = {}  # Cache for PWM values
         
         # Use provided config or fall back to I2C_CONFIG
         self.config = config or I2C_CONFIG
         
-        print("Initializing RobotController...")
-        print(f"I2C_CONFIG: {self.config}")
-        
         # Initialize the PCA9685 using config
         try:
-            print(f"Attempting to initialize PCA9685 on bus {self.config['default_bus']}, address {hex(self.config['pca9685_address'])}")
             self.pwm = PCA9685(address=self.config['pca9685_address'], busnum=self.config['default_bus'])
             self.pwm.set_pwm_freq(50)  # Set PWM frequency to 50Hz (standard for servos)
-            print("PCA9685 initialized successfully")
         except Exception as e:
-            print(f"Warning: Failed to initialize PCA9685: {str(e)}")
             if platform.system() == 'Windows':
-                print("Using mock PCA9685 implementation on Windows")
                 self.pwm = MockPCA9685(address=self.config['pca9685_address'], busnum=self.config['default_bus'])
                 self.pwm.set_pwm_freq(50)
             else:
-                print("Hardware control will not be available")
+                print(f"Warning: Failed to initialize PCA9685: {str(e)}")
                 self.pwm = None
     
+    def _move_to_default_positions(self, speed=0.01):
+        """Move all servos to their default positions."""
+        for servo_index, default_angle in DEFAULT_POSITIONS.items():
+            self.set_servo(servo_index, default_angle, speed=speed)
+
     def initialize_robot(self) -> None:
-        """
-        Initialize the robot hardware and move all servos to their default positions.
-        """
+        """Initialize the robot hardware and move all servos to their default positions."""
         if not self.initialized:
-            print("Initializing robot hardware...")
-            
-            # Move all servos to their default positions
-            print("Moving servos to default positions...")
-            for servo_index, default_angle in DEFAULT_POSITIONS.items():
-                print(f"Moving servo {servo_index} to {default_angle} degrees")
-                self.set_servo(servo_index, default_angle)
-                time.sleep(0.1)  # Small delay between servo movements
-            
-            print("Robot initialization complete")
+            self._move_to_default_positions()
             self.initialized = True
     
     def cleanup(self) -> None:
@@ -95,30 +83,25 @@ class RobotController(BaseRobotController):
             self.initialized = False
     
     def shutdown(self) -> None:
-        """
-        Shutdown the robot controller and clean up resources.
-        This method should be called when the program is exiting.
-        """
+        """Shutdown the robot controller and clean up resources."""
         try:
-            print("Shutting down robot controller...")
-            
-            # Release all servos to neutral position
-            for servo_index in range(len(Servos)):
-                self.set_servo(servo_index, 90)  # Move to neutral position
-            
-            # Call the existing cleanup method
+            # Move to neutral position and cleanup
+            self._move_to_default_positions()
             self.cleanup()
             
-            # Additional cleanup for hardware
+            # Reset all PWM channels
             if hasattr(self, 'pwm') and self.pwm is not None:
-                # Reset all PWM channels
-                for channel in range(16):  # PCA9685 has 16 channels
+                for channel in range(16):
                     self.pwm.set_pwm(channel, 0, 0)
-            
-            print("Robot controller shutdown complete")
-        except Exception as e:
-            print(f"Error during shutdown: {e}")
+        except Exception:
+            pass  # Ensure shutdown completes even if errors occur
     
+    def _angle_to_pwm(self, angle):
+        """Convert angle to PWM value with caching."""
+        if angle not in self._pwm_cache:
+            self._pwm_cache[angle] = int(205 + (angle / 180.0) * 205)
+        return self._pwm_cache[angle]
+
     def set_servo(self, servo_index, angle, speed=0.01):
         """
         Set a servo to a specific angle with controlled speed.
@@ -132,130 +115,75 @@ class RobotController(BaseRobotController):
         min_angle, max_angle = SERVO_LIMITS.get(servo_index, (0, 180))
         safe_angle = max(min_angle, min(max_angle, angle))
         
-        # Convert angle to PWM value (0-4095)
-        # Servos typically use 1ms to 2ms pulse width (0-180 degrees)
-        # For 50Hz (20ms period), this is 5% to 10% duty cycle
-        # 4095 * 0.05 = 205 (0 degrees)
-        # 4095 * 0.10 = 410 (180 degrees)
-        pwm_value = int(205 + (safe_angle / 180.0) * 205)
-        
         # Get current position
         current_angle = self.current_positions.get(servo_index, 90)
         
         # Check if PWM controller is available
         if self.pwm is None:
-            print(f"Mock servo movement: servo {servo_index} to angle {safe_angle}")
             self.current_positions[servo_index] = safe_angle
             return
         
-        # Gradually move to target position
-        if current_angle < safe_angle:
-            for a in range(int(current_angle), int(safe_angle) + 1):
-                pwm_value = int(205 + (a / 180.0) * 205)
-                self.pwm.set_pwm(servo_index, 0, pwm_value)
-                self.current_positions[servo_index] = a
-                time.sleep(speed)
-        else:
-            for a in range(int(current_angle), int(safe_angle) - 1, -1):
-                pwm_value = int(205 + (a / 180.0) * 205)
-                self.pwm.set_pwm(servo_index, 0, pwm_value)
-                self.current_positions[servo_index] = a
-                time.sleep(speed)
+        # Calculate step direction and range
+        step = 1 if current_angle < safe_angle else -1
+        start = int(current_angle)
+        end = int(safe_angle) + step
+        
+        # Move to target position
+        for a in range(start, end, step):
+            pwm_value = self._angle_to_pwm(a)
+            self.pwm.set_pwm(servo_index, 0, pwm_value)
+            self.current_positions[servo_index] = a
+            time.sleep(speed)
     
     def dance(self):
         """
         Execute a dance sequence combining various movements.
         """
-        print("Starting dance routine!")
+        # Define dance sequences with minimal memory usage
+        sequences = (
+            # Initial pose
+            ((Servos.HEAD, 90), (Servos.SHOULDER_RIGHT, 60), (Servos.SHOULDER_LEFT, 120),
+             (Servos.ELBOW_RIGHT, 120), (Servos.ELBOW_LEFT, 60)),
+            # First move: Rocking side to side with arms
+            ((Servos.HIP_RIGHT, 70), (Servos.HIP_LEFT, 110), (Servos.SHOULDER_RIGHT, 80),
+             (Servos.SHOULDER_LEFT, 100)),
+            ((Servos.HIP_RIGHT, 110), (Servos.HIP_LEFT, 70), (Servos.SHOULDER_RIGHT, 40),
+             (Servos.SHOULDER_LEFT, 140)),
+            # Second move: Head bobbing with arm waves
+            ((Servos.HEAD, 70), (Servos.ELBOW_RIGHT, 150), (Servos.ELBOW_LEFT, 30)),
+            ((Servos.HEAD, 110), (Servos.ELBOW_RIGHT, 90), (Servos.ELBOW_LEFT, 90)),
+            # Third move: Full body twist
+            ((Servos.HIP_RIGHT, 60), (Servos.HIP_LEFT, 120), (Servos.SHOULDER_RIGHT, 40),
+             (Servos.SHOULDER_LEFT, 140), (Servos.HEAD, 60)),
+            ((Servos.HIP_RIGHT, 120), (Servos.HIP_LEFT, 60), (Servos.SHOULDER_RIGHT, 140),
+             (Servos.SHOULDER_LEFT, 40), (Servos.HEAD, 120)),
+            # Final pose
+            ((Servos.HEAD, 90), (Servos.SHOULDER_RIGHT, 60), (Servos.SHOULDER_LEFT, 120),
+             (Servos.ELBOW_RIGHT, 120), (Servos.ELBOW_LEFT, 60), (Servos.HIP_RIGHT, 90),
+             (Servos.HIP_LEFT, 90))
+        )
         
-        # Initial pose
-        self.set_servo(Servos.HEAD, 90)
-        self.set_servo(Servos.SHOULDER_RIGHT, 60)
-        self.set_servo(Servos.SHOULDER_LEFT, 120)
-        self.set_servo(Servos.ELBOW_RIGHT, 120)
-        self.set_servo(Servos.ELBOW_LEFT, 60)
-        time.sleep(1)
-        
-        # First move: Rocking side to side with arms
-        for _ in range(3):
-            self.set_servo(Servos.HIP_RIGHT, 70)
-            self.set_servo(Servos.HIP_LEFT, 110)
-            self.set_servo(Servos.SHOULDER_RIGHT, 80)
-            self.set_servo(Servos.SHOULDER_LEFT, 100)
+        # Execute dance sequences
+        for sequence in sequences:
+            # Move all servos in the sequence simultaneously
+            for servo_index, angle in sequence:
+                self.set_servo(servo_index, angle, speed=0.01)
             time.sleep(0.4)
-            self.set_servo(Servos.HIP_RIGHT, 110)
-            self.set_servo(Servos.HIP_LEFT, 70)
-            self.set_servo(Servos.SHOULDER_RIGHT, 40)
-            self.set_servo(Servos.SHOULDER_LEFT, 140)
-            time.sleep(0.4)
-        
-        # Second move: Head bobbing with arm waves
-        for _ in range(2):
-            self.set_servo(Servos.HEAD, 70)
-            self.set_servo(Servos.ELBOW_RIGHT, 150)
-            self.set_servo(Servos.ELBOW_LEFT, 30)
-            time.sleep(0.3)
-            self.set_servo(Servos.HEAD, 110)
-            self.set_servo(Servos.ELBOW_RIGHT, 90)
-            self.set_servo(Servos.ELBOW_LEFT, 90)
-            time.sleep(0.3)
-        
-        # Third move: Full body twist
-        for _ in range(2):
-            self.set_servo(Servos.HIP_RIGHT, 60)
-            self.set_servo(Servos.HIP_LEFT, 120)
-            self.set_servo(Servos.SHOULDER_RIGHT, 40)
-            self.set_servo(Servos.SHOULDER_LEFT, 140)
-            self.set_servo(Servos.HEAD, 60)
-            time.sleep(0.5)
-            self.set_servo(Servos.HIP_RIGHT, 120)
-            self.set_servo(Servos.HIP_LEFT, 60)
-            self.set_servo(Servos.SHOULDER_RIGHT, 140)
-            self.set_servo(Servos.SHOULDER_LEFT, 40)
-            self.set_servo(Servos.HEAD, 120)
-            time.sleep(0.5)
-        
-        # Final pose
-        self.set_servo(Servos.HEAD, 90)
-        self.set_servo(Servos.SHOULDER_RIGHT, 60)
-        self.set_servo(Servos.SHOULDER_LEFT, 120)
-        self.set_servo(Servos.ELBOW_RIGHT, 120)
-        self.set_servo(Servos.ELBOW_LEFT, 60)
-        self.set_servo(Servos.HIP_RIGHT, 90)
-        self.set_servo(Servos.HIP_LEFT, 90)
-        time.sleep(1)
         
         print("Dance routine completed!")
 
     def stand_up(self):
-        """
-        Make the robot stand up by moving all servos to their default positions.
-        """
-        print("Standing up robot...")
-        
+        """Make the robot stand up by moving all servos to their default positions."""
         if not self.initialized:
-            print("Error: Robot not initialized. Call initialize_robot() first.")
             return False
             
         if self.pwm is None:
-            print("Error: PCA9685 controller not available")
             return False
             
-        print(f"Using PCA9685 controller: {self.pwm}")
-        print(f"Default positions: {DEFAULT_POSITIONS}")
-        
         try:
-            # Move all servos to their default positions
-            for servo_index, default_angle in DEFAULT_POSITIONS.items():
-                print(f"Moving servo {servo_index} to {default_angle} degrees")
-                self.set_servo(servo_index, default_angle)
-                time.sleep(0.1)  # Small delay between servo movements
-            
-            print("Robot is standing up")
+            self._move_to_default_positions()
             return True
-            
-        except Exception as e:
-            print(f"Error during stand_up: {str(e)}")
+        except Exception:
             return False
 
 if __name__ == "__main__":
